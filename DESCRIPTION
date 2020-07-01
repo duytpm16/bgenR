@@ -1,0 +1,11 @@
+Package: bgenR
+Type: Package
+Title: bgenR
+Version: 1.0
+Date: 2020-07-01
+Author: Duy T. Pham
+Maintainer: Duy T. Pham <duytpham16@gmail.com>
+Description: Reads BGEN file format into R 
+License: GPL (>= 2)
+Imports: Rcpp (>= 1.0.4)
+LinkingTo: Rcpp

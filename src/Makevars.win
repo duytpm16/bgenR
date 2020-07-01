@@ -1,0 +1,3 @@
+SOURCES = $(wildcard ../thirdparty/zstd-1.4.5/lib/common/*.c) $(wildcard ../thirdparty/zstd-1.4.5/lib/compress/*.c) $(wildcard ../thirdparty/zstd-1.4.5/lib/decompress/*.c) $(wildcard ../thirdparty/zstd-1.4.5/lib/dictBuilder/*.c) $(wildcard ../thirdparty/libdeflate-1.6/lib/*.c) $(wildcard ../thirdparty/libdeflate-1.6/lib/x86/*.c) $(wildcard ../thirdparty/libdeflate-1.6/lib/arm/*.c)
+OBJECTS = read_bgen.o RcppExport.o $(SOURCES:.c=.o)
+PKG_CFLAGS = -I../thirdparty/zstd-1.4.5/lib -I../thirdparty/zstd-1.4.5/common -I../thirdparty/libdeflate-1.6
