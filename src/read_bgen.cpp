@@ -281,29 +281,39 @@ Rcpp::List query_bgen13(){
           const uint32_t missing_and_ploidy = *missing_and_ploidy_iter++;
           uintptr_t numer_aa;
           uintptr_t numer_ab;
-
-          switch (missing_and_ploidy) {
-          case 1:
-            Bgen13GetOneVal(probs_start, prob_offset, bit_precision, numer_mask);
-            prob_offset++;
-            break;
-          case 2:
-            Bgen13GetTwoVals(probs_start, prob_offset, bit_precision, numer_mask, &numer_aa, &numer_ab);
-            prob_offset += 2;
-            break;
-          default:
-            cerr << "\nERROR: " << snpID << " contains ploidy " << missing_and_ploidy << ". Currently unsupported.\n\n";
-            exit(1);
+          
+          if(missing_and_ploidy == 2){
+             Bgen13GetTwoVals(probs_start, prob_offset, bit_precision, numer_mask, &numer_aa, &numer_ab);
+             prob_offset += 2;
+             
+             double p11 = numer_aa / double(1.0 * (numer_mask));
+             double p10 = numer_ab / double(1.0 * (numer_mask));
+             double dosage = 2 * (1 - p11 - p10) + p10;
+             
+             probs(i, 0) = p11;
+             probs(i, 1) = p10;
+             dosVec[i] = dosage;
+             gmean += dosage;
+             
+          } else if (missing_and_ploidy == 1){
+             Bgen13GetOneVal(probs_start, prob_offset, bit_precision, numer_mask);
+             prob_offset++;
+             
+             double p11 = numer_aa / double(1.0 * (numer_mask));
+             double dosage = 1 - p11;
+             
+             probs(i, 0) = p11;
+             probs(i, 1) = NA_REAL;
+             dosVec[i] = dosage;
+             gmean += dosage;
+             
+          } else {
+             
+             probs(i, 0) = NA_REAL;
+             probs(i, 1) = NA_REAL;
+             dosVec[i] = NA_REAL;
           }
 
-          double p11 = numer_aa / double(1.0 * (numer_mask));
-          double p10 = numer_ab / double(1.0 * (numer_mask));
-          double dosage = 2 * (1 - p11 - p10) + p10;
-
-          probs(i, 0) = p11;
-          probs(i, 1) = p10;
-          dosVec[i] = dosage;
-          gmean += dosage;
 
      }
 

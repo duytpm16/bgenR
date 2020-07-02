@@ -14,7 +14,10 @@ M = bgenInfo$M
 
 
 for(i in 1:M){
+    # do something...
     snpInfo <- query_bgen()
+    
+    # do something...
 }
 
 ```
