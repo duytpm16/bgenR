@@ -28,7 +28,7 @@ RcppExport SEXP _bgenR_query_bgen() {
 }
 
 // close_bgen
-List close_bgen();
+String close_bgen();
 RcppExport SEXP _bgenR_close_bgen() {
     BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

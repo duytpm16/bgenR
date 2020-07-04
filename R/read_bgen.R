@@ -4,7 +4,9 @@ read_bgen <- function(x) {
 
 
 query_bgen <- function() {
+  
   .Call('_bgenR_query_bgen', PACKAGE = 'bgenR')
+  
 }
 
 

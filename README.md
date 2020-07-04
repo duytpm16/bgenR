@@ -20,4 +20,6 @@ for(i in 1:M){
     # do something...
 }
 
+close_bgen()
+
 ```

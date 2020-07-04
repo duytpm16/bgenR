@@ -30,8 +30,7 @@ class BGEN {
     uint SampleIdentifiers;
     Rcpp::CharacterVector sampleID;
 
-    //Rcpp::List set_bgen(SEXP bgenfile_in);
-    
+    uint Counter;
   private:
     void read_bgenSampleID();
 };
