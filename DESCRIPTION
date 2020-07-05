@@ -9,3 +9,4 @@ Description: Reads BGEN file format into R
 License: GPL (>= 2)
 Imports: Rcpp (>= 1.0.4)
 LinkingTo: Rcpp
+RoxygenNote: 7.1.0

@@ -5,13 +5,13 @@
 
 using namespace Rcpp;
 
-// set_bgen
-List set_bgen(SEXP bgenfile_in);
-RcppExport SEXP _bgenR_set_bgen(SEXP bgenfile_in) {
+// open_bgen
+List open_bgen(SEXP bgenfile_in);
+RcppExport SEXP _bgenR_open_bgen(SEXP bgenfile_in) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(set_bgen(bgenfile_in));
+    rcpp_result_gen = Rcpp::wrap(open_bgen(bgenfile_in));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -39,10 +39,25 @@ RcppExport SEXP _bgenR_close_bgen() {
 }
 
 
+
+// get_VariantBlock
+Rcpp::DataFrame get_variantBlock();
+RcppExport SEXP _bgenR_get_variantBlock() {
+    BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_variantBlock());
+    return rcpp_result_gen;
+    END_RCPP
+}
+
+
+
 static const R_CallMethodDef CallEntries[] = {
-    {"_bgenR_set_bgen", (DL_FUNC) &_bgenR_set_bgen, 1},
+    {"_bgenR_open_bgen", (DL_FUNC) &_bgenR_open_bgen, 1},
     {"_bgenR_query_bgen", (DL_FUNC) &_bgenR_query_bgen, 0},
     {"_bgenR_close_bgen", (DL_FUNC) &_bgenR_close_bgen, 0},  
+    {"_bgenR_get_variantBlock", (DL_FUNC) &_bgenR_get_variantBlock, 0},
     {NULL, NULL, 0}
 };
 

@@ -7,7 +7,7 @@ Still in development
 ```r
 library(bgenR)
 
-bgenInfo = read_bgen("my_bgenfile.bgen")
+bgenInfo = open_bgen("my_bgenfile.bgen")
 
 # Number of variants
 M = bgenInfo$M

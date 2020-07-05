@@ -31,8 +31,6 @@ class BGEN {
     Rcpp::CharacterVector sampleID;
 
     uint Counter;
-  private:
-    void read_bgenSampleID();
 };
 
 #endif
