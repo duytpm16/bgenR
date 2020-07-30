@@ -1,10 +1,9 @@
 #include "read_bgen.h"
-#include "../thirdparty/libdeflate-1.6/libdeflate.h"
-#include "../thirdparty/zstd-1.4.5/lib/zstd.h"
+#include "libdeflate-1.6/libdeflate.h"
+#include "zstd-1.4.5/lib/zstd.h"
 #include <Rcpp.h>
 #include <stdio.h>
 #include <zlib.h>
-
 
 
 
