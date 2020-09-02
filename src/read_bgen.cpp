@@ -7,6 +7,7 @@
 
 
 
+
 typedef unsigned int   uint;
 typedef unsigned char  uchar;
 typedef unsigned short ushort;
@@ -209,7 +210,7 @@ Rcpp::List query_bgen13(){
     Rcpp::stop("\nERROR: " + string(rsID) + " does not contain 2 alleles.\n\n");
   }
   
-  ushort LA; fread(&LA, 4, 1, bStream);
+  uint32_t LA; fread(&LA, 4, 1, bStream);
   if (LA > maxLA) {
     maxLA = 2 * LA;
     delete[] allele1;
@@ -217,7 +218,7 @@ Rcpp::List query_bgen13(){
   }
   fread(allele1, 1, LA, bStream); allele1[LA] = '\0';
   
-  ushort LB; fread(&LB, 4, 1, bStream);
+  uint32_t LB; fread(&LB, 4, 1, bStream);
   if (LB > maxLB) {
     maxLA = 2 * LB;
     delete[] allele0;
@@ -262,61 +263,17 @@ Rcpp::List query_bgen13(){
   }
   
   
-  uint N = bufAt[0] | (bufAt[1] << 8) | (bufAt[2] << 16) | (bufAt[3] << 24); bufAt += 4;
-  // if (N != Nbgen) {
-  //   cerr << "\nERROR: " << "snpName " << " has N = " << N << " (mismatch with header block)\n\n";
-  //   exit(1);
-  // }
-  
-  
-  
-  uint K = bufAt[0] | (bufAt[1] << 8); bufAt += 2;
-  // if (K != 2U) {
-  //   cout << "\nERROR: There are SNP(s) with more than 2 alleles (non-bi-allelic). . Currently unsupported. \n\n";
-  //   exit(1);
-  // }
-  
-  
-  uint Pmin = *bufAt; bufAt++;
-  // if (Pmin > 2U) {
-  //   cerr << "\nERROR: " << snpID << " has minimum ploidy = " << Pmin << ". Currently unsupported. \n\n";
-  //   exit(1);
-  // }
-  
-  
-  uint Pmax = *bufAt; bufAt++;
-  // if (Pmax > 2U) {
-  //   cerr << "\nERROR: " << snpID << " has maximum ploidy = " << Pmax << ". Currently unsupported. \n\n";
-  //   exit(1);
-  // }
-  
-  
-  vector<unsigned int> ploidy_and_missing_info(N);
-  int ploidy_sum = 0;
-  int idx_to_sum = 0;
-  for (uint i = 0; i < N; i++) {
-    uint ploidyMiss = *bufAt;
-    ploidy_and_missing_info[i] = ploidyMiss;
-    
-    if (ploidyMiss > 2U) {
-      std::cerr << "\nERROR: " << snpID << " has ploidy/missingness byte = " << ploidyMiss
-                << " (not 2) \n\n";
-      exit(1);
-    }
-    
-    ploidy_sum += ploidyMiss;
-    idx_to_sum++;
-    
-    bufAt++;
-  }
-  
-  
-  uint is_phased = *bufAt; bufAt++;
-  uint B = *bufAt; bufAt++;
-  //uint32_t  bit_precision = probs_start[-1];
-  //uintptr_t numer_mask    = (1U << bit_precision) - 1;
-  uint numer_mask = (1U << B) - 1;
-  
+  uint32_t N; memcpy(&N, bufAt, sizeof(int32_t));
+  uint16_t K; memcpy(&K, &(bufAt[4]), sizeof(int16_t));
+  const uint32_t min_ploidy = bufAt[6];
+  const uint32_t max_ploidy = bufAt[7];
+
+  const unsigned char* missing_and_ploidy_info = &(bufAt[8]);
+  const unsigned char* probs_start = &(bufAt[10 + N]);
+  const uint32_t is_phased = probs_start[-2];
+
+  const uint32_t B = probs_start[-1];
+  const uintptr_t numer_mask = (1U << B) - 1;
   
   
   uintptr_t prob_offset = 0;
@@ -325,120 +282,83 @@ Rcpp::List query_bgen13(){
   if(!is_phased){
     
      for (uint32_t i = 0; i < N; i++) {
-         // const uint32_t missing_and_ploidy = *missing_and_ploidy_iter++;
-         // uintptr_t numer_aa;
-         // uintptr_t numer_ab;
-      
-          uint chartem;
-          uint chartem1;
+          const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
+          uintptr_t numer_aa;
+          uintptr_t numer_ab;
           
-          if (ploidy_and_missing_info[i] >= 1 && ploidy_and_missing_info[i] <= 2){
-              if (B == 8U)
-                chartem = bufAt[0];
-              else if (B == 16U)
-                chartem = bufAt[0] | (bufAt[1] << 8);
-              else if (B == 24U)
-                chartem = bufAt[0] | (bufAt[1] << 8) | (bufAt[2] << 16);
-              else if (B == 32U)
-                chartem = bufAt[0] | (bufAt[1] << 8) | (bufAt[2] << 16) | (bufAt[3] << 24);
-              bufAt += B / 8;    
-              
-              if (ploidy_and_missing_info[i] == 2U) {
-                if (B == 8U)
-                  chartem1 = bufAt[0];
-                else if (B == 16U)
-                  chartem1 = bufAt[0] | (bufAt[1] << 8);
-                else if (B == 24U)
-                  chartem1 = bufAt[0] | (bufAt[1] << 8) | (bufAt[2] << 16);
-                else if (B == 32U)
-                  chartem1 = bufAt[0] | (bufAt[1] << 8) | (bufAt[2] << 16) | (bufAt[3] << 24);
-                bufAt += B / 8;
-              }
+          if(missing_and_ploidy == 2){
+             Bgen13GetTwoVals(probs_start, prob_offset, B, numer_mask, &numer_aa, &numer_ab);
+             prob_offset += 2;
             
-              double p11 = chartem / double(1.0 * (numer_mask));
-              double p10 = chartem1 / double(1.0 * (numer_mask));
-              
-              double dosage = 2 * (1 - p11 - p10) + p10;
-              probs(i, 0) = p11;
-              probs(i, 1) = p10;
-              dosVec[i] = dosage;
-              gmean += dosage;
-              
+             double p11 = numer_aa / double(1.0 * (numer_mask));
+             double p10 = numer_ab / double(1.0 * (numer_mask));
+             double dosage = 2 * (1 - p11 - p10) + p10;
+            
+             probs(i, 0) = p11;
+             probs(i, 1) = p10;
+             dosVec[i] = dosage;
+             gmean += dosage;
+          
           }
-      
-          
-          //if(missing_and_ploidy == 2){
-          //  Bgen13GetTwoVals(probs_start, prob_offset, bit_precision, numer_mask, &numer_aa, &numer_ab);
-          //  prob_offset += 2;
+          else if (missing_and_ploidy == 1) {
+             Bgen13GetOneVal(probs_start, prob_offset, B, numer_mask);
+             prob_offset++;
+
+             double p11 = numer_aa / double(1.0 * (numer_mask));
+             double dosage = 1 - p11;
+
+             probs(i, 0) = p11;
+             probs(i, 1) = NA_REAL;
+             dosVec[i]   = dosage;
+             gmean += dosage;
+
+          }
+          else {
             
-         //   double p11 = numer_aa / double(1.0 * (numer_mask));
-           // double p10 = numer_ab / double(1.0 * (numer_mask));
-         //   double dosage = 2 * (1 - p11 - p10) + p10;
-            
-         //   probs(i, 0) = p11;
-        //    probs(i, 1) = p10;
-        //    dosVec[i] = dosage;
-          //  gmean += dosage;
-          
-          // } else if (missing_and_ploidy == 1){
-          //   Bgen13GetOneVal(probs_start, prob_offset, bit_precision, numer_mask);
-          //   prob_offset++;
-          //   
-          //   double p11 = numer_aa / double(1.0 * (numer_mask));
-          //   double dosage = 1 - p11;
-          //   
-          //   probs(i, 0) = p11;
-          //   probs(i, 1) = NA_REAL;
-          //   dosVec[i] = dosage;
-          //   gmean += dosage;
-            
-           else {
-            
-            probs(i, 0) = NA_REAL;
-            probs(i, 1) = NA_REAL;
-            dosVec[i] = NA_REAL;
+             probs(i, 0) = NA_REAL;
+             probs(i, 1) = NA_REAL;
+             dosVec[i]   = NA_REAL;
           }
      }
     
   } else if(is_phased){
-      // for (uint32_t i = 0; i < N; i++) {
-      //   
-      //      const uint32_t missing_and_ploidy = *missing_and_ploidy_iter++;
-      //      uintptr_t numer_aa;
-      //      uintptr_t numer_ab;
-      //   
-      //      if(missing_and_ploidy == 2){
-      //         Bgen13GetTwoVals(probs_start, prob_offset, bit_precision, numer_mask, &numer_aa, &numer_ab);
-      //         prob_offset += 2;
-      //     
-      //         double p11 = numer_aa / double(1.0 * (numer_mask));
-      //         double p10 = numer_ab / double(1.0 * (numer_mask));
-      //         double dosage = 2 - (p11 + p10);
-      //     
-      //         probs(i, 0) = p11;
-      //         probs(i, 1) = p10;
-      //         dosVec[i] = dosage;
-      //         gmean += dosage;
-      //     
-      //         // } else if (missing_and_ploidy == 1){
-      //         //   Bgen13GetOneVal(probs_start, prob_offset, bit_precision, numer_mask);
-      //         //   prob_offset++;
-      //         //   
-      //         //   double p11 = numer_aa / double(1.0 * (numer_mask));
-      //         //   double dosage = 1 - p11;
-      //         //   
-      //         //   probs(i, 0) = p11;
-      //         //   probs(i, 1) = NA_REAL;
-      //         //   dosVec[i] = dosage;
-      //         //   gmean += dosage;
-      //         
-      //     } else {
-      //     
-      //        probs(i, 0) = NA_REAL;
-      //        probs(i, 1) = NA_REAL;
-      //        dosVec[i] = NA_REAL;
-      //     }
-      // }
+       for (uint32_t i = 0; i < N; i++) {
+         
+            const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
+            uintptr_t numer_aa;
+            uintptr_t numer_ab;
+         
+            if(missing_and_ploidy == 2){
+               Bgen13GetTwoVals(probs_start, prob_offset, B, numer_mask, &numer_aa, &numer_ab);
+               prob_offset += 2;
+           
+               double p11 = numer_aa / double(1.0 * (numer_mask));
+               double p10 = numer_ab / double(1.0 * (numer_mask));
+               double dosage = 2 - (p11 + p10);
+           
+               probs(i, 0) = p11;
+               probs(i, 1) = p10;
+               dosVec[i] = dosage;
+               gmean += dosage;
+           
+            } else if (missing_and_ploidy == 1){
+               Bgen13GetOneVal(probs_start, prob_offset, B, numer_mask);
+               prob_offset++;
+                  
+               double p11 = numer_aa / double(1.0 * (numer_mask));
+               double dosage = 1 - p11;
+                 
+               probs(i, 0) = p11;
+               probs(i, 1) = NA_REAL;
+               dosVec[i]   = dosage;
+               gmean += dosage;
+               
+            } else {
+               probs(i, 0) = NA_REAL;
+               probs(i, 1) = NA_REAL;
+               dosVec[i]   = NA_REAL;
+            }
+       }
       
   }
   
@@ -520,7 +440,7 @@ Rcpp::List query_bgen11(){
     fread(chrStr, 1, LC, bStream); chrStr[LC] = '\0';
     uint physpos; fread(&physpos, 4, 1, bStream);
     
-    ushort LA; fread(&LA, 4, 1, bStream);
+    uint32_t LA; fread(&LA, 4, 1, bStream);
     if (LA > maxLA) {
       maxLA = 2 * LA;
       delete[] allele1;
@@ -528,7 +448,7 @@ Rcpp::List query_bgen11(){
     }
     fread(allele1, 1, LA, bStream); allele1[LA] = '\0';
     
-    ushort LB; fread(&LB, 4, 1, bStream);
+    uint32_t LB; fread(&LB, 4, 1, bStream);
     if (LB > maxLB) {
       maxLA = 2 * LB;
       delete[] allele0;
@@ -661,7 +581,7 @@ Rcpp::DataFrame get_variantBlock(){
            ushort LKnum; fread(&LKnum, 2, 1, bStream);
        }
     
-       uint LA; fread(&LA, 4, 1, bStream); 
+       uint32_t LA; fread(&LA, 4, 1, bStream);
        if (LA > maxLA) {
            maxLA = 2 * LA;
            delete[] allele1;
@@ -669,7 +589,7 @@ Rcpp::DataFrame get_variantBlock(){
        }
        fread(allele1, 1, LA, bStream); allele1[LA] = '\0';
 
-       uint LB; fread(&LB, 4, 1, bStream); 
+       uint32_t LB; fread(&LB, 4, 1, bStream);
        if (LB > maxLB) {
            maxLB = 2 * LB;
            delete[] allele0;
