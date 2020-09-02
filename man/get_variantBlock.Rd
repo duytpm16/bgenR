@@ -21,11 +21,12 @@ The BGEN file must be opened first using \code{open_bgen} to use this function. 
   \item{SNPID}{The variant identifier.}
   \item{RSID}{The reference snp identifier.}
   \item{CHR}{The chromosome of the variant.}
-  \item{POS}{The position of the varian.}
+  \item{POS}{The position of the variant.}
   \item{A1}{The first allele in the BGEN file.}
   \item{A2}{The second allele in the BGEN file.}
 }
 \examples{
   bgenInfo <- open_bgen("my_bgenFile.bgen")
   variantInfo <- get_VariantBlock()
+  close_bgen()
 }
