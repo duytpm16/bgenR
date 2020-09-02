@@ -49,3 +49,15 @@ OBJECTS = RcppExport.o \
 	  libdeflate-1.6/lib/x86/cpu_features.o
 
 PKG_LIBS = -lz
+
+
+
+all: $(SHLIB)
+
+
+.PHONY: shlib-clean clean
+
+shlib-clean: clean
+
+clean:
+	rm -rf $(OBJECTS) *.so
