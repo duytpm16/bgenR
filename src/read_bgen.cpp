@@ -158,6 +158,8 @@ Rcpp::List query_bgen(){
   else if(bgen.Layout == 1){
     return(query_bgen11());
   }
+
+  return(NA_REAL);
 } 
 
 
@@ -284,10 +286,12 @@ Rcpp::List query_bgen13(){
     
      for (uint32_t i = 0; i < N; i++) {
           const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
-          uintptr_t numer_aa;
-          uintptr_t numer_ab;
+
           
           if(missing_and_ploidy == 2){
+             uintptr_t numer_aa;
+             uintptr_t numer_ab;
+
              Bgen13GetTwoVals(probs_start, prob_offset, B, numer_mask, &numer_aa, &numer_ab);
              prob_offset += 2;
             
@@ -302,10 +306,11 @@ Rcpp::List query_bgen13(){
           
           }
           else if (missing_and_ploidy == 1) {
-             Bgen13GetOneVal(probs_start, prob_offset, B, numer_mask);
+
+             const uintptr_t numer_a = Bgen13GetOneVal(probs_start, prob_offset, B, numer_mask);
              prob_offset++;
 
-             double p11 = numer_aa / double(1.0 * (numer_mask));
+             double p11 = numer_a / double(1.0 * (numer_mask));
              double dosage = 1 - p11;
 
              probs(i, 0) = p11;
@@ -326,10 +331,11 @@ Rcpp::List query_bgen13(){
        for (uint32_t i = 0; i < N; i++) {
          
             const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
-            uintptr_t numer_aa;
-            uintptr_t numer_ab;
          
             if(missing_and_ploidy == 2){
+               uintptr_t numer_aa;
+               uintptr_t numer_ab;
+
                Bgen13GetTwoVals(probs_start, prob_offset, B, numer_mask, &numer_aa, &numer_ab);
                prob_offset += 2;
            
@@ -343,10 +349,10 @@ Rcpp::List query_bgen13(){
                gmean += dosage;
            
             } else if (missing_and_ploidy == 1){
-               Bgen13GetOneVal(probs_start, prob_offset, B, numer_mask);
+                const uintptr_t numer_a = Bgen13GetOneVal(probs_start, prob_offset, B, numer_mask);
                prob_offset++;
                   
-               double p11 = numer_aa / double(1.0 * (numer_mask));
+               double p11 = numer_a / double(1.0 * (numer_mask));
                double dosage = 1 - p11;
                  
                probs(i, 0) = p11;
