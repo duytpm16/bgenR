@@ -266,8 +266,9 @@ Rcpp::List query_bgen13(){
   uint32_t N; memcpy(&N, bufAt, sizeof(int32_t));
   uint16_t K; memcpy(&K, &(bufAt[4]), sizeof(int16_t));
   const uint32_t min_ploidy = bufAt[6];
+  if (min_ploidy > 2) {Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported.") }
   const uint32_t max_ploidy = bufAt[7];
-
+  if (max_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported.") }
   const unsigned char* missing_and_ploidy_info = &(bufAt[8]);
   const unsigned char* probs_start = &(bufAt[10 + N]);
   const uint32_t is_phased = probs_start[-2];
@@ -540,15 +541,15 @@ Rcpp::DataFrame get_variantBlock(){
   
   uint maxLA = 65536;
   uint maxLB = 65536;
-  char* snpID = new char[maxLA + 1];
-  char* rsID = new char[maxLA + 1];
-  char* chrStr = new char[maxLA + 1];
+  char* snpID   = new char[maxLA + 1];
+  char* rsID    = new char[maxLA + 1];
+  char* chrStr  = new char[maxLA + 1];
   char* allele1 = new char[maxLA + 1];
   char* allele0 = new char[maxLB + 1];
   
   
   
-  for (int m = 0; m < bgen.Mbgen; m++) {
+  for (uint m = 0; m < bgen.Mbgen; m++) {
        maxLA = 65536;
        maxLB = 65536;
        
@@ -558,19 +559,9 @@ Rcpp::DataFrame get_variantBlock(){
        }
  
        ushort LS; fread(&LS, 2, 1, bStream);
-       if (LS > maxLA) {
-           maxLA = 2 * LS;
-           delete[] snpID;
-           char* snpID = new char[maxLA + 1];
-       }
        fread(snpID, 1, LS, bStream); snpID[LS] = '\0'; 
        
        ushort LR; fread(&LR, 2, 1, bStream);
-       if (LR > maxLA) {
-           maxLA = 2 * LR;
-           delete[] rsID;
-           char* rsID = new char[maxLA + 1];
-       }
        
        fread(rsID, 1, LR, bStream); rsID[LR] = '\0'; 
        ushort LC; fread(&LC, 2, 1, bStream);
@@ -582,19 +573,9 @@ Rcpp::DataFrame get_variantBlock(){
        }
     
        uint32_t LA; fread(&LA, 4, 1, bStream);
-       if (LA > maxLA) {
-           maxLA = 2 * LA;
-           delete[] allele1;
-           char* allele1 = new char[maxLA + 1];
-       }
        fread(allele1, 1, LA, bStream); allele1[LA] = '\0';
 
        uint32_t LB; fread(&LB, 4, 1, bStream);
-       if (LB > maxLB) {
-           maxLB = 2 * LB;
-           delete[] allele0;
-           char* allele0 = new char[maxLB + 1];
-       }
        fread(allele0, 1, LB, bStream); allele0[LB] = '\0';
     
        if (Layout == 2) {
