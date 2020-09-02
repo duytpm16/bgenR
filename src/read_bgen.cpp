@@ -266,9 +266,9 @@ Rcpp::List query_bgen13(){
   uint32_t N; memcpy(&N, bufAt, sizeof(int32_t));
   uint16_t K; memcpy(&K, &(bufAt[4]), sizeof(int16_t));
   const uint32_t min_ploidy = bufAt[6];
-  if (min_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported.") };
+  if (min_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); }
   const uint32_t max_ploidy = bufAt[7];
-  if (max_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported.") };
+  if (max_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); }
   const unsigned char* missing_and_ploidy_info = &(bufAt[8]);
   const unsigned char* probs_start = &(bufAt[10 + N]);
   const uint32_t is_phased = probs_start[-2];
