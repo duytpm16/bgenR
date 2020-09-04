@@ -52,7 +52,7 @@ Rcpp::String close_bgen(){
   delete[] allele1;
   delete[] allele0;
 
-  if (bgen.Layout == 1) {
+  if ( bgen.Layout == 1 ) {
       free(zBuf11);
       free(shortBuf11);
   }
