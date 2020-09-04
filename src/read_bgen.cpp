@@ -21,6 +21,19 @@ FILE* bStream;
 BGEN bgen;
 struct libdeflate_decompressor* decompressor = libdeflate_alloc_decompressor();
 
+uLongf destLen1;
+uchar* zBuf11;
+uint16_t* shortBuf11;
+std::vector<uchar> zBuf12;
+std::vector<uchar> shortBuf12;
+
+uint maxLA = 65536;
+char* snpID   = new char[maxLA + 1];
+char* rsID    = new char[maxLA + 1];
+char* chrStr  = new char[maxLA + 1];
+char* allele1 = new char[maxLA + 1];
+char* allele0 = new char[maxLA + 1];
+
 
 Rcpp::CharacterVector read_bgenSampleID();
 Rcpp::List query_bgen11();
@@ -33,6 +46,17 @@ Rcpp::String close_bgen(){
      Rcpp::stop("BGEN file is already closed.");
   }
   
+  delete[] snpID;
+  delete[] rsID;
+  delete[] chrStr;
+  delete[] allele1;
+  delete[] allele0;
+
+  if (bgen.Layout == 1) {
+      free(zBuf12);
+      free(shortBuf12);
+  }
+
   fseek(bStream, 0, SEEK_END);
   fclose(bStream);
   bStream = NULL;
@@ -76,7 +100,11 @@ Rcpp::List open_bgen(SEXP bgenfile_in){
     bgen.sampleID = read_bgenSampleID();
   }
   
-  
+  if (bgen.Layout == 1) {
+      destLen1 = 6 * bgen.Nbgen;
+      zBuf11 = (unsigned char*)malloc(6 * bgen.Nbgen);
+      shortBuf11 = (uint16_t*)malloc(6 * bgen.Nbgen);
+  }
   
   fseek(bStream, bgen.offset + 4, SEEK_SET);
   bgen.Counter = 0;
@@ -94,7 +122,6 @@ Rcpp::List open_bgen(SEXP bgenfile_in){
 
 Rcpp::CharacterVector read_bgenSampleID(){
   
-  uint maxLA = 65536;
   Rcpp::CharacterVector sampleID(bgen.Nbgen);
   
   uint LS1;  fread(&LS1,  4, 1, bStream);
@@ -174,58 +201,31 @@ Rcpp::List query_bgen13(){
      Rcpp::stop("End of BGEN file has already been reached. Please close the file with close_bgen().");
   }
   
-  uint maxLA = 65536;
-  uint maxLB = 65536;
-  char* snpID   = new char[maxLA + 1];
-  char* rsID    = new char[maxLA + 1];
-  char* chrStr  = new char[maxLA + 1];
-  char* allele1 = new char[maxLA + 1];
-  char* allele0 = new char[maxLA + 1];
-  std::vector<uchar> zBuf12;
-  std::vector<uchar> shortBuf12;
   uint Nsamples = bgen.Nbgen;
   uint Compression = bgen.Compression;
   NumericMatrix probs(Nsamples, 2);
   NumericVector dosVec(Nsamples);
+
   ushort LS; fread(&LS, 2, 1, bStream);
-  if (LS > maxLA) {
-    maxLA = 2 * LS;
-    delete[] snpID;
-    snpID = new char[maxLA + 1];
-  }
   fread(snpID, 1, LS, bStream); snpID[LS] = '\0';
   
   
   ushort LR; fread(&LR, 2, 1, bStream);
-  if (LR > maxLA) {
-    maxLA = 2 * LR;
-    delete[] rsID;
-    rsID = new char[maxLA + 1];
-  }
   fread(rsID, 1, LR, bStream); rsID[LR] = '\0';
   
   ushort LC; fread(&LC, 2, 1, bStream);
   fread(chrStr, 1, LC, bStream); chrStr[LC] = '\0';
   uint physpos; fread(&physpos, 4, 1, bStream);
+
   ushort LKnum; fread(&LKnum,   2, 1, bStream);
   if ( LKnum != 2U ){
     Rcpp::stop("\nERROR: " + string(rsID) + " does not contain 2 alleles.\n\n");
   }
   
   uint32_t LA; fread(&LA, 4, 1, bStream);
-  if (LA > maxLA) {
-    maxLA = 2 * LA;
-    delete[] allele1;
-    allele1 = new char[maxLA + 1];
-  }
   fread(allele1, 1, LA, bStream); allele1[LA] = '\0';
   
   uint32_t LB; fread(&LB, 4, 1, bStream);
-  if (LB > maxLB) {
-    maxLA = 2 * LB;
-    delete[] allele0;
-    allele0 = new char[maxLB + 1];
-  }
   fread(allele0, 1, LB, bStream); allele0[LB] = '\0';
   
   
@@ -400,25 +400,13 @@ Rcpp::List query_bgen11(){
     if(bgen.Counter >= (bgen.Mbgen + 1)){
       Rcpp::stop("End of BGEN file has already been reached. Please close the file with close_bgen().");
     }
-    
-    
-    uint maxLA = 65536;
-    uint maxLB = 65536;
-    char* snpID   = new char[maxLA + 1];
-    char* rsID    = new char[maxLA + 1];
-    char* chrStr  = new char[maxLA + 1];
-    char* allele1 = new char[maxLA + 1];
-    char* allele0 = new char[maxLA + 1];
+
     
     uint Nsamples = bgen.Nbgen;
-    uchar* zBuf11 = (unsigned char*)malloc(6 * Nsamples);
-    uint16_t* shortBuf11 = (uint16_t*)malloc(6 * Nsamples);
     
     uint Compression = bgen.Compression;
     NumericMatrix probs(Nsamples, 3);
     NumericVector dosVec(Nsamples);
-    
-    
     
     
     uint Nrow2; fread(&Nrow2, 4, 1, bStream); 
@@ -427,20 +415,9 @@ Rcpp::List query_bgen11(){
     }
     
     ushort LS; fread(&LS, 2, 1, bStream);
-    if (LS > maxLA) {
-      maxLA = 2 * LS;
-      delete[] snpID;
-      snpID = new char[maxLA + 1];
-    }
     fread(snpID, 1, LS, bStream); snpID[LS] = '\0';
     
-    
     ushort LR; fread(&LR, 2, 1, bStream);
-    if (LR > maxLA) {
-      maxLA = 2 * LR;
-      delete[] rsID;
-      rsID = new char[maxLA + 1];
-    }
     fread(rsID, 1, LR, bStream); rsID[LR] = '\0';
     
     ushort LC; fread(&LC, 2, 1, bStream);
@@ -448,23 +425,11 @@ Rcpp::List query_bgen11(){
     uint physpos; fread(&physpos, 4, 1, bStream);
     
     uint32_t LA; fread(&LA, 4, 1, bStream);
-    if (LA > maxLA) {
-      maxLA = 2 * LA;
-      delete[] allele1;
-      allele1 = new char[maxLA + 1];
-    }
     fread(allele1, 1, LA, bStream); allele1[LA] = '\0';
     
     uint32_t LB; fread(&LB, 4, 1, bStream);
-    if (LB > maxLB) {
-      maxLA = 2 * LB;
-      delete[] allele0;
-      allele0 = new char[maxLB + 1];
-    }
     fread(allele0, 1, LB, bStream); allele0[LB] = '\0';
     
-    
-    uLongf destLen1 = 6 * Nsamples;
     
   
     if (Compression == 1) {
