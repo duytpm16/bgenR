@@ -14,7 +14,7 @@
 }
 
 \details{
-The BGEN file must be opened first using \code{open_bgen} to use this function. The pointer will reset back to the beginning of the very first variant block so that other functions may be used after. If no other functions are used after, please close the BGEN file with \code{close_bgen()}.
+The BGEN file must be opened first using \code{open_bgen} to use this function. The pointer will reset back to the beginning of the very first variant block so that other functions may be used after. If no other functions are used after, close the BGEN file with \code{close_bgen()}.
 }
 \value{
   A data.frame containing information from the BGEN file. The column names are described below.
