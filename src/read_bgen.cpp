@@ -53,8 +53,8 @@ Rcpp::String close_bgen(){
   delete[] allele0;
 
   if (bgen.Layout == 1) {
-      free(zBuf12);
-      free(shortBuf12);
+      free(zBuf11);
+      free(shortBuf11);
   }
 
   fseek(bStream, 0, SEEK_END);
