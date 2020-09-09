@@ -158,20 +158,36 @@ uintptr_t Bgen13GetOneVal(const unsigned char* prob_start, uint64_t prob_offset,
 
 
 void Bgen13GetTwoVals(const unsigned char* prob_start, uint64_t prob_offset, uint32_t bit_precision, uintptr_t numer_mask, uintptr_t* first_val_ptr, uintptr_t* second_val_ptr) {
-  const uint64_t bit_offset = prob_offset * bit_precision;
-  uint64_t relevant_bits;
-  // This can read slightly past the end of the buffer.
-  // Note that with bit_precision=29 and variable ploidy,
-  // (bit_offset % CHAR_BIT) == 7 is possible, so we may only get 57 bits when
-  // we need 58; thus we don't support 29-31 bits for now.
-  memcpy(&relevant_bits, &(prob_start[bit_offset / CHAR_BIT]), sizeof(int64_t));
-  relevant_bits = relevant_bits >> (bit_offset % CHAR_BIT);
-  *first_val_ptr = relevant_bits & numer_mask;
-  *second_val_ptr = (relevant_bits >> bit_precision) & numer_mask;
+  const uint64_t bit_offset = bit_precision / 8.0;
+  
+  switch(bit_precision) {
+  case 8:
+    *first_val_ptr  = prob_start[0];
+    prob_start += bit_offset;
+    *second_val_ptr = prob_start[0];
+    prob_start += bit_offset;
+    break;
+  case 16:
+    *first_val_ptr  = bufAt[0]|(bufAt[1]<<8);
+    prob_start += bit_offset;
+    *second_val_ptr = bufAt[0]|(bufAt[1]<<8);
+    prob_start += bit_offset;
+    break;
+  case 24:
+    *first_val_ptr  = bufAt[0]|(bufAt[1]<<8)|(bufAt[2]<<16);
+    prob_start += bit_offset;
+    *second_val_ptr = bufAt[0]|(bufAt[1]<<8)|(bufAt[2]<<16);
+    prob_start += bit_offset;
+    break;
+  case 32:
+    *first_val_ptr  = bufAt[0]|(bufAt[1]<<8)|(bufAt[2]<<16)|(bufAt[3]<<24);
+    prob_start += bit_offset;
+    *second_val_ptr = bufAt[0]|(bufAt[1]<<8)|(bufAt[2]<<16)|(bufAt[3]<<24);
+    prob_start += bit_offset;
+    
+  }
+  
 }
-
-
-
 
 
 
