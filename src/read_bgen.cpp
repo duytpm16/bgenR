@@ -104,8 +104,8 @@ Rcpp::List open_bgen(SEXP bgenfile_in){
       Rcpp::stop("ERROR: BGEN file's magic number does not match 'b', 'g', 'e', 'n'.");
   }
 
-
   fseek(bStream, L_H - 20, SEEK_CUR);
+
   uint flags; 
   if (!fread(&flags, 4, 1, bStream)) {
       Rcpp::stop("ERROR: Cannot read BGEN header block (flags)");
@@ -356,9 +356,13 @@ Rcpp::List query_bgen13(){
   memcpy(&K, &(prob_start[4]), sizeof(int16_t));
 
   const uint32_t min_ploidy = prob_start[6];
-  if (min_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); }
+  if (min_ploidy > 2) { 
+      Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); 
+  }
   const uint32_t max_ploidy = prob_start[7];
-  if (max_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); }
+  if (max_ploidy > 2) { 
+      Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); 
+  }
 
   const unsigned char* missing_and_ploidy_info = &(prob_start[8]);
   const unsigned char* probs_start = &(prob_start[10 + N]);
@@ -549,6 +553,19 @@ Rcpp::List query_bgen11(){
         }
     
     }
+    else if (Compression == 2) {
+        uint cLen;
+        ret = fread(&cLen, 4, 1, bStream);
+        ret = fread(zBuf11, 1, cLen, bStream);
+
+        size_t ret = ZSTD_decompress(&shortBuf11[0], cLen, &zBuf11[0], destLen1);
+        if (ret > destLen1) {
+            if (ZSTD_isError(ret)) {
+                Rcout << "ZSTD ERROR: " << ZSTD_getErrorName(ret);
+                Rcpp::stop("\n\n");
+            }
+        }
+    }
     else {
         ret = fread(zBuf11, 1, destLen1, bStream);
         shortBuf11 = reinterpret_cast<uint16_t*>(zBuf11);
@@ -577,7 +594,7 @@ Rcpp::List query_bgen11(){
     
   
     if(bgen.Counter == (bgen.Mbgen)){
-       Rcpp::Rcout << "End of BGEN file has been reached. Please close the file with close_bgen()." << std::endl;
+        Rcpp::stop("End of BGEN file has been reached. Please close the file with close_bgen().");
     }
   
     double AF = gmean / Nsamples / 2.0;
