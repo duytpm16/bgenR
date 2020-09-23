@@ -338,7 +338,7 @@ Rcpp::List query_bgen13(){
     size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
     if (ret > destLen) {
       if (ZSTD_isError(ret)) {
-          Rcpp::stop("ZSTD ERROR: " + std::to_string(ZSTD_getErrorName(ret)));
+          Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with zstd.");
       }
     }
     prob_start = &shortBuf12[0];
@@ -562,7 +562,7 @@ Rcpp::List query_bgen11(){
         size_t ret = ZSTD_decompress(&shortBuf11[0], cLen, &zBuf11[0], destLen1);
         if (ret > destLen1) {
             if (ZSTD_isError(ret)) {
-                Rcpp::stop("ZSTD ERROR: " + std::to_string(ZSTD_getErrorName(ret)));
+                Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with zstd.");
             }
         }
     }
