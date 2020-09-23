@@ -247,7 +247,7 @@ Rcpp::List query_bgen13(){
   ret = fread(chrStr, 1, LC, bStream); 
   chrStr[LC] = '\0';
 
-  uint physpos; 
+  uint16_t physpos; 
   ret = fread(&physpos, 4, 1, bStream);
 
   ushort LKnum; 
@@ -592,30 +592,44 @@ Rcpp::DataFrame get_variantBlock(){
        int ret;
        
        if (Layout == 1) {
-           uint Nrow; ret = fread(&Nrow, 4, 1, bStream);
+           uint Nrow;
+           ret = fread(&Nrow, 4, 1, bStream);
        }
  
-       ushort LS; ret = fread(&LS, 2, 1, bStream);
-       ret = fread(snpID, 1, LS, bStream); snpID[LS] = '\0';
+       ushort LS; 
+       ret = fread(&LS, 2, 1, bStream);
+       ret = fread(snpID, 1, LS, bStream); 
+       snpID[LS] = '\0';
        
-       ushort LR; ret = fread(&LR, 2, 1, bStream);
-       
-       ret = fread(rsID, 1, LR, bStream); rsID[LR] = '\0';
-       ushort LC; ret = fread(&LC, 2, 1, bStream);
-       ret = fread(chrStr, 1, LC, bStream); chrStr[LC] = '\0';
-       uint physpos; ret = fread(&physpos, 4, 1, bStream);
+       ushort LR; 
+       ret = fread(&LR, 2, 1, bStream);
+       ret = fread(rsID, 1, LR, bStream);
+       rsID[LR] = '\0';
+
+       ushort LC; 
+       ret = fread(&LC, 2, 1, bStream);
+       ret = fread(chrStr, 1, LC, bStream); 
+       chrStr[LC] = '\0';
+
+       uint16_t physpos; 
+       ret = fread(&physpos, 4, 1, bStream);
        
        if (Layout == 2) {
            ushort LKnum; 
            ret = fread(&LKnum, 2, 1, bStream);
        }
     
-       uint32_t LA; ret = fread(&LA, 4, 1, bStream);
-       ret = fread(allele1, 1, LA, bStream); allele1[LA] = '\0';
+       uint32_t LA; 
+       ret = fread(&LA, 4, 1, bStream);
+       ret = fread(allele1, 1, LA, bStream); 
+       allele1[LA] = '\0';
 
-       uint32_t LB; ret = fread(&LB, 4, 1, bStream);
-       ret = fread(allele0, 1, LB, bStream); allele0[LB] = '\0';
+       uint32_t LB; 
+       ret = fread(&LB, 4, 1, bStream);
+       ret = fread(allele0, 1, LB, bStream); 
+       allele0[LB] = '\0';
     
+
        if (Layout == 2) {
            if (Compression > 0) {
                uint zLen;  
@@ -647,7 +661,6 @@ Rcpp::DataFrame get_variantBlock(){
        vecA1[m]    = allele1;
        vecA2[m]    = allele0;
 
-       
   }
   
   fseek(bStream, bgen.offset + 4, SEEK_SET);
