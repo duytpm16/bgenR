@@ -294,8 +294,8 @@ Rcpp::List query_bgen13(){
     size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
     if (ret > destLen) {
       if (ZSTD_isError(ret)) {
-          Rcout << "ZSTD ERROR: " + ZSTD_getErrorName(ret));
-          Rstop("\n\n");
+          Rcout << "ZSTD ERROR: " << ZSTD_getErrorName(ret));
+          Rcpp::stop("\n\n");
       }
     }
     prob_start = &shortBuf12[0];
