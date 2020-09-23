@@ -167,7 +167,7 @@ Rcpp::CharacterVector read_bgenSampleID(){
   }
   
   if (Nrow != bgen.Nbgen) {
-      Rcpp::stop("Number of sample identifiers (" + Nrow + ") does not match the number of BGEN samples (" + bgen.Nbgen + ")");
+      Rcpp::stop("Number of sample identifiers (" + std::to_string(Nrow) + ") does not match the number of BGEN samples (" + std::to_string(bgen.Nbgen) + ")");
   }
   
   
