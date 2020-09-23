@@ -57,6 +57,8 @@ Rcpp::String close_bgen(){
       free(shortBuf11);
   }
 
+  libdeflate_free_decompressor(decompressor);
+
   fseek(bStream, 0, SEEK_END);
   fclose(bStream);
   bStream = NULL;
@@ -73,31 +75,31 @@ Rcpp::List open_bgen(SEXP bgenfile_in){
   
   bStream = fopen(bgenfile.c_str(), "rb");
   if (!bStream) { 
-      Rcpp::stop("ERROR: Cannot not open BGEN file: " + bgenfile + "\n"); 
+      Rcpp::stop("ERROR: Cannot not open BGEN file: " + bgenfile + "."); 
   }
   
   
   // Header Block
   if (!fread(&bgen.offset, 4, 1, bStream)) {
-      Rcpp::stop("ERROR: Cannot read BGEN header block (offset)");
+      Rcpp::stop("ERROR: Cannot read BGEN header block (offset).");
   }
 
   uint L_H; 
   if (!fread(&L_H, 4, 1, bStream)) {
-      Rcpp::stop("ERROR: Cannot read BGEN header block (LH)");
+      Rcpp::stop("ERROR: Cannot read BGEN header block (LH).");
   }
 
   if (!fread(&bgen.Mbgen, 4, 1, bStream)) {
-      Rcpp::stop("ERROR: Cannot read BGEN header block (M)");
+      Rcpp::stop("ERROR: Cannot read BGEN header block (M).");
   }
 
   if (!fread(&bgen.Nbgen, 4, 1, bStream)) {
-      Rcpp::stop("ERROR: Cannot read BGEN header block (N)");
+      Rcpp::stop("ERROR: Cannot read BGEN header block (N).");
   }
 
   char magic[5]; 
   if (!fread(magic, 1, 4, bStream)) {
-      Rcpp::stop("ERROR: Cannot read BGEN header block (magic numbers)");
+      Rcpp::stop("ERROR: Cannot read BGEN header block (magic numbers).");
   }
   magic[4] = '\0';
   if (!(magic[0] == 'b' && magic[1] == 'g' && magic[2] == 'e' && magic[3] == 'n')) {
@@ -108,7 +110,7 @@ Rcpp::List open_bgen(SEXP bgenfile_in){
 
   uint flags; 
   if (!fread(&flags, 4, 1, bStream)) {
-      Rcpp::stop("ERROR: Cannot read BGEN header block (flags)");
+      Rcpp::stop("ERROR: Cannot read BGEN header block (flags).");
   }
   
   
@@ -125,7 +127,7 @@ Rcpp::List open_bgen(SEXP bgenfile_in){
 
   bgen.SampleIdentifiers = flags >> 31;
   if (bgen.SampleIdentifiers != 0 && bgen.SampleIdentifiers != 1) {
-      Rcpp::stop("ERROR: BGEN layout flag should be 0 or 1.");
+      Rcpp::stop("ERROR: BGEN sample identifier flag should be 0 or 1.");
   }
   
   
@@ -159,15 +161,15 @@ Rcpp::CharacterVector read_bgenSampleID(){
   
   uint LS1;  
   if (!fread(&LS1, 4, 1, bStream)) {
-      Rcpp::stop("ERROR: Cannot read BGEN sample block (LS)");
+      Rcpp::stop("ERROR: Cannot read BGEN sample block (LS).");
   }
   uint Nrow; 
   if (!fread(&Nrow, 4, 1, bStream)) {
-      Rcpp::stop("ERROR: Cannot read BGEN sample block (N)");
+      Rcpp::stop("ERROR: Cannot read BGEN sample block (N).");
   }
   
   if (Nrow != bgen.Nbgen) {
-      Rcpp::stop("Number of sample identifiers (" + std::to_string(Nrow) + ") does not match the number of BGEN samples (" + std::to_string(bgen.Nbgen) + ")");
+      Rcpp::stop("Number of sample identifiers (" + std::to_string(Nrow) + ") does not match the number of BGEN samples (" + std::to_string(bgen.Nbgen) + ").");
   }
   
   
@@ -295,7 +297,7 @@ Rcpp::List query_bgen13(){
   ushort LKnum; 
   ret = fread(&LKnum,   2, 1, bStream);
   if ( LKnum != 2U ){
-    Rcpp::stop("\nERROR: " + string(rsID) + " does not contain 2 alleles.");
+    Rcpp::stop("ERROR: " + string(rsID) + " is non-bi-allelic.");
   }
   
   uint32_t LA; 
@@ -336,8 +338,7 @@ Rcpp::List query_bgen13(){
     size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
     if (ret > destLen) {
       if (ZSTD_isError(ret)) {
-          Rcout << "ZSTD ERROR: " << ZSTD_getErrorName(ret);
-          Rcpp::stop("\n\n");
+          Rcpp::stop("ZSTD ERROR: " + std::to_string(ZSTD_getErrorName(ret)));
       }
     }
     prob_start = &shortBuf12[0];
@@ -469,7 +470,7 @@ Rcpp::List query_bgen13(){
   }
   
   if (bgen.Counter == (bgen.Mbgen)){
-      Rcpp::stop("End of BGEN file has been reached. Please close the file with close_bgen().");
+      Rcout << "End of BGEN file has been reached. Please close the file with close_bgen().\n";
   }
   
   double AF = gmean / Nsamples / 2.0;
@@ -511,7 +512,7 @@ Rcpp::List query_bgen11(){
     uint Nrow2; 
     ret = fread(&Nrow2, 4, 1, bStream);
     if (Nrow2 != Nsamples) {
-        Rcpp::stop("\nERROR: Number of samples with genotype probabilities for variant " + string(rsID) + " does not match the number of sample in BGEN header block.\n\n");
+        Rcpp::stop("ERROR: Number of samples with genotype probabilities for variant " + string(rsID) + " does not match the number of sample in BGEN header block.");
     }
     
     ushort LS; 
@@ -549,7 +550,7 @@ Rcpp::List query_bgen11(){
         ret = fread(zBuf11, 1, cLen, bStream);
       
         if (libdeflate_zlib_decompress(decompressor, &zBuf11[0], cLen, &shortBuf11[0], destLen1, NULL) != LIBDEFLATE_SUCCESS) {
-            Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.\n\n");
+            Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.");
         }
     
     }
@@ -561,8 +562,7 @@ Rcpp::List query_bgen11(){
         size_t ret = ZSTD_decompress(&shortBuf11[0], cLen, &zBuf11[0], destLen1);
         if (ret > destLen1) {
             if (ZSTD_isError(ret)) {
-                Rcout << "ZSTD ERROR: " << ZSTD_getErrorName(ret);
-                Rcpp::stop("\n\n");
+                Rcpp::stop("ZSTD ERROR: " + std::to_string(ZSTD_getErrorName(ret)));
             }
         }
     }
@@ -594,7 +594,7 @@ Rcpp::List query_bgen11(){
     
   
     if(bgen.Counter == (bgen.Mbgen)){
-        Rcpp::stop("End of BGEN file has been reached. Please close the file with close_bgen().");
+        Rcout << "End of BGEN file has been reached. Please close the file with close_bgen().\n";
     }
   
     double AF = gmean / Nsamples / 2.0;
@@ -618,7 +618,7 @@ Rcpp::DataFrame get_variantBlock(){
 
 
   if(bStream == NULL) {
-     Rcpp::stop("\nERROR: BGEN file is not open. Please reopen the BGEN file with open_bgen().");
+     Rcpp::stop("ERROR: BGEN file is not open. Please reopen the BGEN file with open_bgen().");
   }
   
   uint Layout = bgen.Layout;
