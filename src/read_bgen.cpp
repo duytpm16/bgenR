@@ -78,22 +78,55 @@ Rcpp::List open_bgen(SEXP bgenfile_in){
   
   
   // Header Block
-  fread(&bgen.offset, 4, 1, bStream);
-  uint L_H; fread(&L_H, 4, 1, bStream);
-  fread(&bgen.Mbgen, 4, 1, bStream);
-  fread(&bgen.Nbgen, 4, 1, bStream);
-  char magic[5]; fread(magic, 1, 4, bStream);
+  if (!fread(&bgen.offset, 4, 1, bStream)) {
+      Rcpp::stop("ERROR: Cannot read BGEN header block (offset)");
+  }
+
+  uint L_H; 
+  if (!fread(&L_H, 4, 1, bStream)) {
+      Rcpp::stop("ERROR: Cannot read BGEN header block (LH)");
+  }
+
+  if (!fread(&bgen.Mbgen, 4, 1, bStream)) {
+      Rcpp::stop("ERROR: Cannot read BGEN header block (M)");
+  }
+
+  if (!fread(&bgen.Nbgen, 4, 1, bStream)) {
+      Rcpp::stop("ERROR: Cannot read BGEN header block (N)");
+  }
+
+  char magic[5]; 
+  if (!fread(magic, 1, 4, bStream)) {
+      Rcpp::stop("ERROR: Cannot read BGEN header block (magic numbers)");
+  }
   magic[4] = '\0';
-  
+  if (!(magic[0] == 'b' && magic[1] == 'g' && magic[2] == 'e' && magic[3] == 'n')) {
+      Rcpp::stop("ERROR: BGEN file's magic number does not match 'b', 'g', 'e', 'n'.");
+  }
+
+
   fseek(bStream, L_H - 20, SEEK_CUR);
-  uint flags; fread(&flags, 4, 1, bStream);
+  uint flags; 
+  if (!fread(&flags, 4, 1, bStream)) {
+      Rcpp::stop("ERROR: Cannot read BGEN header block (flags)");
+  }
   
   
   // Header Block Flags
   bgen.Compression = flags & 3;
+  if (bgen.Compression != 0 && bgen.Compression != 1 && bgen.Compression != 2) {
+      Rcpp::stop("ERROR: BGEN compression flag should be 0, 1, or 2.");
+  }
+
   bgen.Layout = (flags >> 2) & 0xf;
+  if (bgen.Layout != 1 && bgen.Layout != 2) {
+      Rcpp::stop("ERROR: BGEN layout flag should be 1 or 2.");
+  }
+
   bgen.SampleIdentifiers = flags >> 31;
-  
+  if (bgen.SampleIdentifiers != 0 && bgen.SampleIdentifiers != 1) {
+      Rcpp::stop("ERROR: BGEN layout flag should be 0 or 1.");
+  }
   
   
   if (bgen.SampleIdentifiers == 1){
@@ -124,23 +157,32 @@ Rcpp::CharacterVector read_bgenSampleID(){
   
   Rcpp::CharacterVector sampleID(bgen.Nbgen);
   
-  uint LS1;  fread(&LS1,  4, 1, bStream);
-  uint Nrow; fread(&Nrow, 4, 1, bStream);
+  uint LS1;  
+  if (!fread(&LS1, 4, 1, bStream)) {
+      Rcpp::stop("ERROR: Cannot read BGEN sample block (LS)");
+  }
+  uint Nrow; 
+  if (!fread(&Nrow, 4, 1, bStream)) {
+      Rcpp::stop("ERROR: Cannot read BGEN sample block (N)");
+  }
   
   if (Nrow != bgen.Nbgen) {
-    Rcpp::Rcout << "Number of sample identifiers (" << Nrow << ") does not match the number of BGEN samples (" << bgen.Nbgen << ")\n";
-    Rcpp::stop("");
+      Rcpp::stop("Number of sample identifiers (" + Nrow + ") does not match the number of BGEN samples (" + bgen.Nbgen + ")");
   }
   
   
   char* samID = new char[maxLA + 1];
+  int ret;
   for (uint n = 0; n < Nrow; n++) {
-    ushort LSID; fread(&LSID, 2, 1, bStream);
-    fread(samID, 1, LSID, bStream);
+    ushort LSID; 
+    ret = fread(&LSID, 2, 1, bStream);
+    ret = fread(samID, 1, LSID, bStream);
     samID[LSID] = '\0';
+    
     sampleID[n] = samID;
   }
-  
+  (void)ret;
+  delete[] samID;
   return sampleID;
   
 }
@@ -253,7 +295,7 @@ Rcpp::List query_bgen13(){
   ushort LKnum; 
   ret = fread(&LKnum,   2, 1, bStream);
   if ( LKnum != 2U ){
-    Rcpp::stop("\nERROR: " + string(rsID) + " does not contain 2 alleles.\n\n");
+    Rcpp::stop("\nERROR: " + string(rsID) + " does not contain 2 alleles.");
   }
   
   uint32_t LA; 
@@ -279,7 +321,7 @@ Rcpp::List query_bgen13(){
     
     uLongf destLen = dLen;
     if (libdeflate_zlib_decompress(decompressor, &zBuf12[0], cLen - 4, &shortBuf12[0], destLen, NULL) != LIBDEFLATE_SUCCESS) {
-        Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.\n\n");
+        Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.");
     }
     prob_start = &shortBuf12[0];
   }
@@ -294,7 +336,7 @@ Rcpp::List query_bgen13(){
     size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
     if (ret > destLen) {
       if (ZSTD_isError(ret)) {
-          Rcout << "ZSTD ERROR: " << ZSTD_getErrorName(ret));
+          Rcout << "ZSTD ERROR: " << ZSTD_getErrorName(ret);
           Rcpp::stop("\n\n");
       }
     }
@@ -314,20 +356,20 @@ Rcpp::List query_bgen13(){
   memcpy(&K, &(prob_start[4]), sizeof(int16_t));
 
   const uint32_t min_ploidy = prob_start[6];
-  if (min_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported.\n\n"); }
+  if (min_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); }
   const uint32_t max_ploidy = prob_start[7];
-  if (max_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported.\n\n"); }
+  if (max_ploidy > 2) { Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); }
 
   const unsigned char* missing_and_ploidy_info = &(prob_start[8]);
   const unsigned char* probs_start = &(prob_start[10 + N]);
   const uint32_t is_phased = probs_start[-2];
   if (is_phased != 0 && is_phased != 1) {
-      Rcpp::stop("ERROR: phased value must be 0 or 1.\n\n");
+      Rcpp::stop("ERROR: phased value must be 0 or 1.");
   }
 
   const uint32_t B = probs_start[-1];
   if (B != 8 && B != 16 && B != 24 && B != 32) {
-      Rcpp::stop("ERROR: Bits to store probabilities must be 8, 16, 24, or 32.\n\n");
+      Rcpp::stop("ERROR: Bits to store probabilities must be 8, 16, 24, or 32.");
   }
   const uintptr_t numer_mask = (1U << B) - 1;
   const uintptr_t probs_offset = B / 8;
@@ -422,8 +464,8 @@ Rcpp::List query_bgen13(){
       
   }
   
-  if(bgen.Counter == (bgen.Mbgen)){
-    Rcpp::Rcout << "End of BGEN file has been reached. Please close the file with close_bgen()." << std::endl;
+  if (bgen.Counter == (bgen.Mbgen)){
+      Rcpp::stop("End of BGEN file has been reached. Please close the file with close_bgen().");
   }
   
   double AF = gmean / Nsamples / 2.0;
@@ -483,7 +525,7 @@ Rcpp::List query_bgen11(){
     ret = fread(chrStr, 1, LC, bStream); 
     chrStr[LC] = '\0';
 
-    uint physpos; 
+    uint16_t physpos; 
     ret = fread(&physpos, 4, 1, bStream);
     
     uint32_t LA; 
