@@ -289,7 +289,7 @@ Rcpp::List query_bgen13(){
   ret = fread(chrStr, 1, LC, bStream); 
   chrStr[LC] = '\0';
 
-  uint16_t physpos; 
+  uint32_t physpos; 
   ret = fread(&physpos, 4, 1, bStream);
 
   ushort LKnum; 
@@ -525,7 +525,7 @@ Rcpp::List query_bgen11(){
     ret = fread(chrStr, 1, LC, bStream); 
     chrStr[LC] = '\0';
 
-    uint16_t physpos; 
+    uint32_t physpos; 
     ret = fread(&physpos, 4, 1, bStream);
     
     uint32_t LA; 
@@ -653,7 +653,7 @@ Rcpp::DataFrame get_variantBlock(){
        ret = fread(chrStr, 1, LC, bStream); 
        chrStr[LC] = '\0';
 
-       uint16_t physpos; 
+       uint32_t physpos; 
        ret = fread(&physpos, 4, 1, bStream);
        
        if (Layout == 2) {
