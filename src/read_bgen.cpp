@@ -279,7 +279,7 @@ Rcpp::List query_bgen13(){
     
     uLongf destLen = dLen;
     if (libdeflate_zlib_decompress(decompressor, &zBuf12[0], cLen - 4, &shortBuf12[0], destLen, NULL) != LIBDEFLATE_SUCCESS) {
-        Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed.\n\n");
+        Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.\n\n");
     }
     prob_start = &shortBuf12[0];
   }
@@ -294,7 +294,8 @@ Rcpp::List query_bgen13(){
     size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
     if (ret > destLen) {
       if (ZSTD_isError(ret)) {
-          Rcpp::stop("ZSTD ERROR: " + ZSTD_getErrorName(ret));
+          Rcout << "ZSTD ERROR: " + ZSTD_getErrorName(ret));
+          Rstop("\n\n");
       }
     }
     prob_start = &shortBuf12[0];
@@ -502,7 +503,7 @@ Rcpp::List query_bgen11(){
         ret = fread(zBuf11, 1, cLen, bStream);
       
         if (libdeflate_zlib_decompress(decompressor, &zBuf11[0], cLen, &shortBuf11[0], destLen1, NULL) != LIBDEFLATE_SUCCESS) {
-            Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed.\n\n");
+            Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.\n\n");
         }
     
     }
