@@ -307,13 +307,14 @@ Rcpp::List query_bgen13(){
   allele1[LA] = '\0';
   
   uint32_t LB; 
-  ret = fread(&LB, 4, 1, bStream);
-  ret = fread(allele0, 1, LB, bStream); 
-  allele0[LB] = '\0';
-  
+  if (LKnum > 1) {
+      ret = fread(&LB, 4, 1, bStream);
+      ret = fread(allele0, 1, LB, bStream);
+      allele0[LB] = '\0';
+  }
 
   if (skip) {
-      for (size_t a = 0; a < (LKnum - 2); a++) {
+      for (int a = 0; a < (LKnum - 2); a++) {
           uint32_t LA;
           ret = fread(&LA, 4, 1, bStream);
           ret = fread(allele1, 1, LA, bStream);
