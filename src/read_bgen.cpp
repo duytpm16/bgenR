@@ -243,233 +243,233 @@ Rcpp::List query_bgen(){
 
 Rcpp::List query_bgen13(){
   
-  bgen.Counter++;
-  if (bgen.Counter >= (bgen.Mbgen + 1)){
-      Rcpp::stop("End of BGEN file has already been reached. Please close the file with close_bgen().");
-  }
-  
-  uint Nsamples = bgen.Nbgen;
-  uint Compression = bgen.Compression;
-  NumericMatrix probs(Nsamples, 2);
-  NumericVector dosVec(Nsamples);
-  int ret;
-
-
-  ushort LS; 
-  ret = fread(&LS, 2, 1, bStream);
-  ret = fread(snpID, 1, LS, bStream); 
-  snpID[LS] = '\0';
-  
-  ushort LR; 
-  ret = fread(&LR, 2, 1, bStream);
-  ret = fread(rsID, 1, LR, bStream); 
-  rsID[LR] = '\0';
-  
-  ushort LC; 
-  ret = fread(&LC, 2, 1, bStream);
-  ret = fread(chrStr, 1, LC, bStream); 
-  chrStr[LC] = '\0';
-
-  uint32_t physpos; 
-  ret = fread(&physpos, 4, 1, bStream);
-
-  uint16_t LKnum; 
-  ret = fread(&LKnum,   2, 1, bStream);
-  if (LKnum != 2U) {
-      for (uint16_t a = 0; a < LKnum; a++) {
-          uint32_t LA;
-          ret = fread(&LA, 4, 1, bStream);
-          ret = fread(allele1, 1, LA, bStream);
+      bgen.Counter++;
+      if (bgen.Counter >= (bgen.Mbgen + 1)){
+          Rcpp::stop("End of BGEN file has already been reached. Please close the file with close_bgen().");
       }
+  
+      uint Nsamples = bgen.Nbgen;
+      uint Compression = bgen.Compression;
+      NumericMatrix probs(Nsamples, 2);
+      NumericVector dosVec(Nsamples);
+      int ret;
 
-      if (Compression > 0) {
-          uint zLen;
-          ret = fread(&zLen, 4, 1, bStream);
-          fseek(bStream, 4 + zLen - 4, SEEK_CUR);
 
+      ushort LS; 
+      ret = fread(&LS, 2, 1, bStream);
+      ret = fread(snpID, 1, LS, bStream); 
+      snpID[LS] = '\0';
+  
+      ushort LR; 
+      ret = fread(&LR, 2, 1, bStream);
+      ret = fread(rsID, 1, LR, bStream); 
+      rsID[LR] = '\0';
+  
+      ushort LC; 
+      ret = fread(&LC, 2, 1, bStream);
+      ret = fread(chrStr, 1, LC, bStream); 
+      chrStr[LC] = '\0';
+
+      uint32_t physpos; 
+      ret = fread(&physpos, 4, 1, bStream);
+
+      uint16_t LKnum; 
+      ret = fread(&LKnum,   2, 1, bStream);
+      if (LKnum != 2U) {
+          for (uint16_t a = 0; a < LKnum; a++) {
+              uint32_t LA;
+              ret = fread(&LA, 4, 1, bStream);
+              ret = fread(allele1, 1, LA, bStream);
+          }
+
+          if (Compression > 0) {
+              uint zLen;
+              ret = fread(&zLen, 4, 1, bStream);
+              fseek(bStream, 4 + zLen - 4, SEEK_CUR);
+
+          }
+          else {
+              uint zLen;
+              ret = fread(&zLen, 4, 1, bStream);
+              fseek(bStream, zLen, SEEK_CUR);
+          }
+
+          return(Rcpp::List::create(Named("SNPID") = string(snpID),
+                                    Named("RSID") = string(rsID),
+                                    Named("Chromosome") = string(chrStr),
+                                    Named("Position") = physpos,
+                                    Named("Alleles") = LKnum,
+                                    Named("Allele1") = NA_REAL,
+                                    Named("Allele2") = NA_REAL,
+                                    Named("AF") = NA_REAL,
+                                    Named("Probabilities") = NA_REAL,
+                                    Named("Dosages") = NA_REAL));
+      }
+  
+      uint32_t LA; 
+      ret = fread(&LA, 4, 1, bStream);
+      ret = fread(allele1, 1, LA, bStream); 
+      allele1[LA] = '\0';
+  
+      uint32_t LB; 
+      ret = fread(&LB, 4, 1, bStream);
+      ret = fread(allele0, 1, LB, bStream); 
+      allele0[LB] = '\0';
+  
+
+      uchar* prob_start;
+      uint cLen; 
+      ret = fread(&cLen, 4, 1, bStream);
+      if (Compression == 1) {
+          zBuf12.resize(cLen - 4);
+          uint dLen; 
+          ret = fread(&dLen, 4, 1, bStream);
+          ret = fread(&zBuf12[0], 1, cLen - 4, bStream);
+          shortBuf12.resize(dLen);
+    
+          uLongf destLen = dLen;
+          if (libdeflate_zlib_decompress(decompressor, &zBuf12[0], cLen - 4, &shortBuf12[0], destLen, NULL) != LIBDEFLATE_SUCCESS) {
+              Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.");
+          }
+          prob_start = &shortBuf12[0];
+      }
+      else if (Compression == 2) {
+          zBuf12.resize(cLen - 4);
+          uint dLen; 
+          ret = fread(&dLen, 4, 1, bStream);
+          ret = fread(&zBuf12[0], 1, cLen - 4, bStream);
+          shortBuf12.resize(dLen);
+    
+          uLongf destLen = dLen;
+          size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
+          if (ret > destLen) {
+              if (ZSTD_isError(ret)) {
+                  Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with zstd.");
+              }
+          }
+          prob_start = &shortBuf12[0];
       }
       else {
-          uint zLen;
-          ret = fread(&zLen, 4, 1, bStream);
-          fseek(bStream, zLen, SEEK_CUR);
+          zBuf12.resize(cLen);
+          ret = fread(&zBuf12[0], 1, cLen, bStream);
+          prob_start = &zBuf12[0];
+      }
+      (void)ret;
+  
+
+      uint32_t N;
+      memcpy(&N, prob_start, sizeof(int32_t));
+      uint16_t K; 
+      memcpy(&K, &(prob_start[4]), sizeof(int16_t));
+
+      const uint32_t min_ploidy = prob_start[6];
+      if (min_ploidy > 2) { 
+          Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported."); 
+      }
+      const uint32_t max_ploidy = prob_start[7];
+      if (max_ploidy > 2) { 
+          Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported."); 
       }
 
+      const unsigned char* missing_and_ploidy_info = &(prob_start[8]);
+      const unsigned char* probs_start = &(prob_start[10 + N]);
+      const uint32_t is_phased = probs_start[-2];
+      if (is_phased != 0 && is_phased != 1) {
+          Rcpp::stop("ERROR: phased value must be 0 or 1.");
+      }
+
+      const uint32_t B = probs_start[-1];
+      if (B != 8 && B != 16 && B != 24 && B != 32) {
+          Rcpp::stop("ERROR: Bits to store probabilities must be 8, 16, 24, or 32.");
+      }
+      const uintptr_t numer_mask = (1U << B) - 1;
+      const uintptr_t probs_offset = B / 8;
+  
+  
+      double gmean = 0.0;
+  
+      if(!is_phased){
+    
+         for (uint32_t i = 0; i < N; i++) {
+              const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
+
+          
+              if(missing_and_ploidy == 2){
+                 uintptr_t numer_aa;
+                 uintptr_t numer_ab;
+
+                 Bgen13GetTwoVals(probs_start, B, probs_offset, &numer_aa, &numer_ab);
+                 probs_start += (probs_offset * 2);
+            
+                 double p11 = numer_aa / double(1.0 * (numer_mask));
+                 double p10 = numer_ab / double(1.0 * (numer_mask));
+                 double dosage = 2 * (1 - p11 - p10) + p10;
+            
+                 probs(i, 0) = p11;
+                 probs(i, 1) = p10;
+                 dosVec[i] = dosage;
+                 gmean += dosage;
+          
+              }
+              else if (missing_and_ploidy == 130) {
+                 probs(i, 0) = NA_REAL;
+                 probs(i, 1) = NA_REAL;
+                 dosVec[i]   = NA_REAL;
+              }
+              else {
+                  Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported.");
+              }
+         }
+    
+      } else if(is_phased){
+           for (uint32_t i = 0; i < N; i++) {
+         
+                const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
+         
+                if (missing_and_ploidy == 2) {
+                    uintptr_t numer_aa;
+                    uintptr_t numer_ab;
+
+                    Bgen13GetTwoVals(probs_start, B, probs_offset, &numer_aa, &numer_ab);
+                    probs_start += (probs_offset * 2);
+
+                    double p11 = numer_aa / double(1.0 * (numer_mask));
+                    double p10 = numer_ab / double(1.0 * (numer_mask));
+                    double dosage = 2 - (p11 + p10);
+
+                    probs(i, 0) = p11;
+                    probs(i, 1) = p10;
+                    dosVec[i] = dosage;
+                    gmean += dosage;
+
+                }
+                else if (missing_and_ploidy == 130) {
+                    probs(i, 0) = NA_REAL;
+                    probs(i, 1) = NA_REAL;
+                    dosVec[i] = NA_REAL;
+                }
+                else {
+                    Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported.");
+                }
+           }
+      
+      }
+  
+      if (bgen.Counter == (bgen.Mbgen)){
+          Rcout << "End of BGEN file has been reached. Please close the file with close_bgen().\n";
+      }
+  
+      double AF = gmean / Nsamples / 2.0;
       return(Rcpp::List::create(Named("SNPID") = string(snpID),
                                 Named("RSID") = string(rsID),
                                 Named("Chromosome") = string(chrStr),
                                 Named("Position") = physpos,
                                 Named("Alleles") = LKnum,
-                                Named("Allele1") = NA_REAL,
-                                Named("Allele2") = NA_REAL,
-                                Named("AF") = NA_REAL,
-                                Named("Probabilities") = NA_REAL,
-                                Named("Dosages") = NA_REAL));
-  }
-  
-  uint32_t LA; 
-  ret = fread(&LA, 4, 1, bStream);
-  ret = fread(allele1, 1, LA, bStream); 
-  allele1[LA] = '\0';
-  
-  uint32_t LB; 
-  ret = fread(&LB, 4, 1, bStream);
-  ret = fread(allele0, 1, LB, bStream); 
-  allele0[LB] = '\0';
-  
-
-  uchar* prob_start;
-  uint cLen; 
-  ret = fread(&cLen, 4, 1, bStream);
-  if (Compression == 1) {
-      zBuf12.resize(cLen - 4);
-      uint dLen; 
-      ret = fread(&dLen, 4, 1, bStream);
-      ret = fread(&zBuf12[0], 1, cLen - 4, bStream);
-      shortBuf12.resize(dLen);
-    
-      uLongf destLen = dLen;
-      if (libdeflate_zlib_decompress(decompressor, &zBuf12[0], cLen - 4, &shortBuf12[0], destLen, NULL) != LIBDEFLATE_SUCCESS) {
-          Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.");
-      }
-      prob_start = &shortBuf12[0];
-  }
-  else if (Compression == 2) {
-      zBuf12.resize(cLen - 4);
-      uint dLen; 
-      ret = fread(&dLen, 4, 1, bStream);
-      ret = fread(&zBuf12[0], 1, cLen - 4, bStream);
-      shortBuf12.resize(dLen);
-    
-      uLongf destLen = dLen;
-      size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
-      if (ret > destLen) {
-          if (ZSTD_isError(ret)) {
-              Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with zstd.");
-          }
-      }
-      prob_start = &shortBuf12[0];
-  }
-  else {
-      zBuf12.resize(cLen);
-      ret = fread(&zBuf12[0], 1, cLen, bStream);
-      prob_start = &zBuf12[0];
-  }
-  (void)ret;
-  
-
-  uint32_t N;
-  memcpy(&N, prob_start, sizeof(int32_t));
-  uint16_t K; 
-  memcpy(&K, &(prob_start[4]), sizeof(int16_t));
-
-  const uint32_t min_ploidy = prob_start[6];
-  if (min_ploidy > 2) { 
-      Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported."); 
-  }
-  const uint32_t max_ploidy = prob_start[7];
-  if (max_ploidy > 2) { 
-      Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported."); 
-  }
-
-  const unsigned char* missing_and_ploidy_info = &(prob_start[8]);
-  const unsigned char* probs_start = &(prob_start[10 + N]);
-  const uint32_t is_phased = probs_start[-2];
-  if (is_phased != 0 && is_phased != 1) {
-      Rcpp::stop("ERROR: phased value must be 0 or 1.");
-  }
-
-  const uint32_t B = probs_start[-1];
-  if (B != 8 && B != 16 && B != 24 && B != 32) {
-      Rcpp::stop("ERROR: Bits to store probabilities must be 8, 16, 24, or 32.");
-  }
-  const uintptr_t numer_mask = (1U << B) - 1;
-  const uintptr_t probs_offset = B / 8;
-  
-  
-  double gmean = 0.0;
-  
-  if(!is_phased){
-    
-     for (uint32_t i = 0; i < N; i++) {
-          const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
-
-          
-          if(missing_and_ploidy == 2){
-             uintptr_t numer_aa;
-             uintptr_t numer_ab;
-
-             Bgen13GetTwoVals(probs_start, B, probs_offset, &numer_aa, &numer_ab);
-             probs_start += (probs_offset * 2);
-            
-             double p11 = numer_aa / double(1.0 * (numer_mask));
-             double p10 = numer_ab / double(1.0 * (numer_mask));
-             double dosage = 2 * (1 - p11 - p10) + p10;
-            
-             probs(i, 0) = p11;
-             probs(i, 1) = p10;
-             dosVec[i] = dosage;
-             gmean += dosage;
-          
-          }
-          else if (missing_and_ploidy == 130) {
-             probs(i, 0) = NA_REAL;
-             probs(i, 1) = NA_REAL;
-             dosVec[i]   = NA_REAL;
-          }
-          else {
-              Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported.");
-          }
-     }
-    
-  } else if(is_phased){
-       for (uint32_t i = 0; i < N; i++) {
-         
-            const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
-         
-            if (missing_and_ploidy == 2) {
-                uintptr_t numer_aa;
-                uintptr_t numer_ab;
-
-                Bgen13GetTwoVals(probs_start, B, probs_offset, &numer_aa, &numer_ab);
-                probs_start += (probs_offset * 2);
-
-                double p11 = numer_aa / double(1.0 * (numer_mask));
-                double p10 = numer_ab / double(1.0 * (numer_mask));
-                double dosage = 2 - (p11 + p10);
-
-                probs(i, 0) = p11;
-                probs(i, 1) = p10;
-                dosVec[i] = dosage;
-                gmean += dosage;
-
-            }
-            else if (missing_and_ploidy == 130) {
-                probs(i, 0) = NA_REAL;
-                probs(i, 1) = NA_REAL;
-                dosVec[i] = NA_REAL;
-            }
-            else {
-                Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported.");
-            }
-       }
-      
-  }
-  
-  if (bgen.Counter == (bgen.Mbgen)){
-      Rcout << "End of BGEN file has been reached. Please close the file with close_bgen().\n";
-  }
-  
-  double AF = gmean / Nsamples / 2.0;
-  return(Rcpp::List::create(Named("SNPID") = string(snpID),
-                            Named("RSID") = string(rsID),
-                            Named("Chromosome") = string(chrStr),
-                            Named("Position") = physpos,
-                            Named("Alleles") = LKnum,
-                            Named("Allele1")  = string(allele0),
-                            Named("Allele2")  = string(allele1),
-                            Named("AF") = AF,
-                            Named("Probabilities") = probs,
-                            Named("Dosages") = dosVec));
+                                Named("Allele1")  = string(allele0),
+                                Named("Allele2")  = string(allele1),
+                                Named("AF") = AF,
+                                Named("Probabilities") = probs,
+                                Named("Dosages") = dosVec));
   
 }
 
@@ -609,33 +609,21 @@ Rcpp::DataFrame get_variantBlock(){
   }
   
   uint Layout = bgen.Layout;
-  uint Nsamples = bgen.Nbgen;
+  uint nvars = bgen.Mbgen;
   uint Compression = bgen.Compression;
   
-  Rcpp::CharacterVector  vecSNPID(Nsamples);
-  Rcpp::CharacterVector  vecRSID(Nsamples);
-  Rcpp::CharacterVector  vecCHR(Nsamples);
-  Rcpp::NumericVector    vecPOS(Nsamples);
-  Rcpp::NumericVector    vecLK(Nsamples);
-  Rcpp::CharacterVector  vecA1(Nsamples);
-  Rcpp::CharacterVector  vecA2(Nsamples);
+  Rcpp::CharacterVector  vecSNPID(nvars);
+  Rcpp::CharacterVector  vecRSID(nvars);
+  Rcpp::CharacterVector  vecCHR(nvars);
+  Rcpp::NumericVector    vecPOS(nvars);
+  Rcpp::NumericVector    vecLK(nvars);
+  Rcpp::CharacterVector  vecA1(nvars);
+  Rcpp::CharacterVector  vecA2(nvars);
   
   fseek(bStream, bgen.offset + 4, SEEK_SET);
   
   
-  uint maxLA = 65536;
-  uint maxLB = 65536;
-  char* snpID   = new char[maxLA + 1];
-  char* rsID    = new char[maxLA + 1];
-  char* chrStr  = new char[maxLA + 1];
-  char* allele1 = new char[maxLA + 1];
-  char* allele0 = new char[maxLB + 1];
-  
-  
-  
-  for (uint m = 0; m < bgen.Mbgen; m++) {
-       maxLA = 65536;
-       maxLB = 65536;
+  for (uint m = 0; m < nvars; m++) {
        int ret;
        
        if (Layout == 1) {
@@ -689,8 +677,10 @@ Rcpp::DataFrame get_variantBlock(){
                vecCHR[m]   = chrStr;
                vecPOS[m]   = physpos;
                vecLK[m]    = LKnum;
-               vecA1[m]    = "";
-               vecA2[m]    = "";
+               vecA1[m]    = NA_STRING;
+               vecA2[m]    = NA_STRING;
+
+               continue;
            }
        }
        else {
@@ -728,7 +718,7 @@ Rcpp::DataFrame get_variantBlock(){
                fseek(bStream, zLen, SEEK_CUR);
            }
            else {
-               fseek(bStream, 6 * Nsamples, SEEK_CUR);
+               fseek(bStream, 6 * nvars, SEEK_CUR);
            }
        }
        (void)ret;
@@ -745,11 +735,11 @@ Rcpp::DataFrame get_variantBlock(){
   fseek(bStream, bgen.offset + 4, SEEK_SET);
   
   
-  return(Rcpp::DataFrame::create(Named("SNPID") = vecSNPID,
-                                 Named("RSID")  = vecRSID,
-                                 Named("CHR")   = vecCHR,
-                                 Named("POS")   = vecPOS,
+  return(Rcpp::DataFrame::create(Named("SNPID")   = vecSNPID,
+                                 Named("RSID")    = vecRSID,
+                                 Named("CHR")     = vecCHR,
+                                 Named("POS")     = vecPOS,
                                  Named("ALLELES") = vecLK,
-                                 Named("A1")    = vecA1,
-                                 Named("A2")    = vecA2));  
+                                 Named("A1")      = vecA1,
+                                 Named("A2")      = vecA2));  
 }
