@@ -192,28 +192,6 @@ Rcpp::CharacterVector read_bgenSampleID(){
 
 
 
-// These two functions below are being redistributed from plink2.0 
-uintptr_t Bgen13GetOneVal(const unsigned char* prob_start, uint32_t bit_precision) {
-  
-  switch(bit_precision) {
-  case 8:
-    return(prob_start[0]);
-  case 16:
-    return(prob_start[0]|(prob_start[1]<<8));
-    break;
-  case 24:
-    return(prob_start[0]|(prob_start[1]<<8)|(prob_start[2]<<16));
-    break;
-  case 32:
-    return(prob_start[0]|(prob_start[1]<<8)|(prob_start[2]<<16)|(prob_start[3]<<24));
-  default:
-    break;
-  }
-  
-  return 0;
-}
-
-
 void Bgen13GetTwoVals(const unsigned char* prob_start, uint32_t bit_precision, uintptr_t offset, uintptr_t* first_val_ptr, uintptr_t* second_val_ptr) {
   
   switch(bit_precision) {
@@ -266,8 +244,8 @@ Rcpp::List query_bgen(){
 Rcpp::List query_bgen13(){
   
   bgen.Counter++;
-  if(bgen.Counter >= (bgen.Mbgen + 1)){
-     Rcpp::stop("End of BGEN file has already been reached. Please close the file with close_bgen().");
+  if (bgen.Counter >= (bgen.Mbgen + 1)){
+      Rcpp::stop("End of BGEN file has already been reached. Please close the file with close_bgen().");
   }
   
   uint Nsamples = bgen.Nbgen;
@@ -276,6 +254,7 @@ Rcpp::List query_bgen13(){
   NumericVector dosVec(Nsamples);
   int ret;
   bool skip = false;
+
 
   ushort LS; 
   ret = fread(&LS, 2, 1, bStream);
@@ -295,26 +274,10 @@ Rcpp::List query_bgen13(){
   uint32_t physpos; 
   ret = fread(&physpos, 4, 1, bStream);
 
-  ushort LKnum; 
+  uint16_t LKnum; 
   ret = fread(&LKnum,   2, 1, bStream);
-  if ( LKnum > 2U ){
-      skip = true;
-  }
-  
-  uint32_t LA; 
-  ret = fread(&LA, 4, 1, bStream);
-  ret = fread(allele1, 1, LA, bStream); 
-  allele1[LA] = '\0';
-  
-  uint32_t LB; 
-  if (LKnum > 1) {
-      ret = fread(&LB, 4, 1, bStream);
-      ret = fread(allele0, 1, LB, bStream);
-      allele0[LB] = '\0';
-  }
-
-  if (skip) {
-      for (int a = 0; a < (LKnum - 2); a++) {
+  if (LKnum != 2U) {
+      for (uint16_t a = 0; a < LKnum; a++) {
           uint32_t LA;
           ret = fread(&LA, 4, 1, bStream);
           ret = fread(allele1, 1, LA, bStream);
@@ -332,7 +295,6 @@ Rcpp::List query_bgen13(){
           fseek(bStream, zLen, SEEK_CUR);
       }
 
-
       return(Rcpp::List::create(Named("SNPID") = string(snpID),
                                 Named("RSID") = string(rsID),
                                 Named("Chromosome") = string(chrStr),
@@ -344,45 +306,54 @@ Rcpp::List query_bgen13(){
                                 Named("Probabilities") = NA_REAL,
                                 Named("Dosages") = NA_REAL));
   }
-
+  
+  uint32_t LA; 
+  ret = fread(&LA, 4, 1, bStream);
+  ret = fread(allele1, 1, LA, bStream); 
+  allele1[LA] = '\0';
+  
+  uint32_t LB; 
+  ret = fread(&LB, 4, 1, bStream);
+  ret = fread(allele0, 1, LB, bStream); 
+  allele0[LB] = '\0';
   
 
   uchar* prob_start;
   uint cLen; 
   ret = fread(&cLen, 4, 1, bStream);
   if (Compression == 1) {
-    zBuf12.resize(cLen - 4);
-    uint dLen; 
-    ret = fread(&dLen, 4, 1, bStream);
-    ret = fread(&zBuf12[0], 1, cLen - 4, bStream);
-    shortBuf12.resize(dLen);
+      zBuf12.resize(cLen - 4);
+      uint dLen; 
+      ret = fread(&dLen, 4, 1, bStream);
+      ret = fread(&zBuf12[0], 1, cLen - 4, bStream);
+      shortBuf12.resize(dLen);
     
-    uLongf destLen = dLen;
-    if (libdeflate_zlib_decompress(decompressor, &zBuf12[0], cLen - 4, &shortBuf12[0], destLen, NULL) != LIBDEFLATE_SUCCESS) {
-        Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.");
-    }
-    prob_start = &shortBuf12[0];
+      uLongf destLen = dLen;
+      if (libdeflate_zlib_decompress(decompressor, &zBuf12[0], cLen - 4, &shortBuf12[0], destLen, NULL) != LIBDEFLATE_SUCCESS) {
+          Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with libdeflate.");
+      }
+      prob_start = &shortBuf12[0];
   }
   else if (Compression == 2) {
-    zBuf12.resize(cLen - 4);
-    uint dLen; 
-    ret = fread(&dLen, 4, 1, bStream);
-    ret = fread(&zBuf12[0], 1, cLen - 4, bStream);
-    shortBuf12.resize(dLen);
+      zBuf12.resize(cLen - 4);
+      uint dLen; 
+      ret = fread(&dLen, 4, 1, bStream);
+      ret = fread(&zBuf12[0], 1, cLen - 4, bStream);
+      shortBuf12.resize(dLen);
     
-    uLongf destLen = dLen;
-    size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
-    if (ret > destLen) {
-      if (ZSTD_isError(ret)) {
-          Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with zstd.");
+      uLongf destLen = dLen;
+      size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
+      if (ret > destLen) {
+          if (ZSTD_isError(ret)) {
+              Rcpp::stop("ERROR: Decompressing " + string(rsID) + "genotype block failed with zstd.");
+          }
       }
-    }
-    prob_start = &shortBuf12[0];
+      prob_start = &shortBuf12[0];
   }
   else {
-    zBuf12.resize(cLen);
-    ret = fread(&zBuf12[0], 1, cLen, bStream);
-    prob_start = &zBuf12[0];
+      zBuf12.resize(cLen);
+      ret = fread(&zBuf12[0], 1, cLen, bStream);
+      prob_start = &zBuf12[0];
   }
   (void)ret;
   
@@ -394,11 +365,11 @@ Rcpp::List query_bgen13(){
 
   const uint32_t min_ploidy = prob_start[6];
   if (min_ploidy > 2) { 
-      Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); 
+      Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported."); 
   }
   const uint32_t max_ploidy = prob_start[7];
   if (max_ploidy > 2) { 
-      Rcpp::stop("ERROR: Variants with ploidy > 2 is currently not supported."); 
+      Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported."); 
   }
 
   const unsigned char* missing_and_ploidy_info = &(prob_start[8]);
@@ -441,25 +412,13 @@ Rcpp::List query_bgen13(){
              gmean += dosage;
           
           }
-          else if (missing_and_ploidy == 1) {
-
-             const uintptr_t numer_a = Bgen13GetOneVal(probs_start, B);
-             probs_start += probs_offset;
-
-             double p11 = numer_a / double(1.0 * (numer_mask));
-             double dosage = 1 - p11;
-
-             probs(i, 0) = p11;
-             probs(i, 1) = NA_REAL;
-             dosVec[i]   = dosage;
-             gmean += dosage;
-
-          }
-          else {
-            
+          else if (missing_and_ploidy == 130) {
              probs(i, 0) = NA_REAL;
              probs(i, 1) = NA_REAL;
              dosVec[i]   = NA_REAL;
+          }
+          else {
+              Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported.");
           }
      }
     
@@ -468,38 +427,30 @@ Rcpp::List query_bgen13(){
          
             const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
          
-            if(missing_and_ploidy == 2){
-               uintptr_t numer_aa;
-               uintptr_t numer_ab;
+            if (missing_and_ploidy == 2) {
+                uintptr_t numer_aa;
+                uintptr_t numer_ab;
 
-               Bgen13GetTwoVals(probs_start, B, probs_offset, &numer_aa, &numer_ab);
-               probs_start += (probs_offset * 2);
-           
-               double p11 = numer_aa / double(1.0 * (numer_mask));
-               double p10 = numer_ab / double(1.0 * (numer_mask));
-               double dosage = 2 - (p11 + p10);
-           
-               probs(i, 0) = p11;
-               probs(i, 1) = p10;
-               dosVec[i] = dosage;
-               gmean += dosage;
-           
-            } else if (missing_and_ploidy == 1){
-               const uintptr_t numer_a = Bgen13GetOneVal(probs_start, B);
-               probs_start += probs_offset;
-                  
-               double p11 = numer_a / double(1.0 * (numer_mask));
-               double dosage = 1 - p11;
-                 
-               probs(i, 0) = p11;
-               probs(i, 1) = NA_REAL;
-               dosVec[i]   = dosage;
-               gmean += dosage;
-               
-            } else {
-               probs(i, 0) = NA_REAL;
-               probs(i, 1) = NA_REAL;
-               dosVec[i]   = NA_REAL;
+                Bgen13GetTwoVals(probs_start, B, probs_offset, &numer_aa, &numer_ab);
+                probs_start += (probs_offset * 2);
+
+                double p11 = numer_aa / double(1.0 * (numer_mask));
+                double p10 = numer_ab / double(1.0 * (numer_mask));
+                double dosage = 2 - (p11 + p10);
+
+                probs(i, 0) = p11;
+                probs(i, 1) = p10;
+                dosVec[i] = dosage;
+                gmean += dosage;
+
+            }
+            else if (missing_and_ploidy == 130) {
+                probs(i, 0) = NA_REAL;
+                probs(i, 1) = NA_REAL;
+                dosVec[i] = NA_REAL;
+            }
+            else {
+                Rcpp::stop("ERROR: Variants with ploidy != 2 is currently not supported.");
             }
        }
       
