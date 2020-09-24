@@ -275,6 +275,7 @@ Rcpp::List query_bgen13(){
   NumericMatrix probs(Nsamples, 2);
   NumericVector dosVec(Nsamples);
   int ret;
+  bool skip = false;
 
   ushort LS; 
   ret = fread(&LS, 2, 1, bStream);
@@ -296,8 +297,8 @@ Rcpp::List query_bgen13(){
 
   ushort LKnum; 
   ret = fread(&LKnum,   2, 1, bStream);
-  if ( LKnum != 2U ){
-    Rcpp::stop("ERROR: " + string(rsID) + " is non-bi-allelic.");
+  if ( LKnum > 2U ){
+      skip = true;
   }
   
   uint32_t LA; 
@@ -310,7 +311,41 @@ Rcpp::List query_bgen13(){
   ret = fread(allele0, 1, LB, bStream); 
   allele0[LB] = '\0';
   
+
+  if (skip) {
+      for (size_t a = 0; a < (LKnum - 2); a++) {
+          uint32_t LA;
+          ret = fread(&LA, 4, 1, bStream);
+          ret = fread(allele1, 1, LA, bStream);
+      }
+
+      if (Compression > 0) {
+          uint zLen;
+          ret = fread(&zLen, 4, 1, bStream);
+          fseek(bStream, 4 + zLen - 4, SEEK_CUR);
+
+      }
+      else {
+          uint zLen;
+          ret = fread(&zLen, 4, 1, bStream);
+          fseek(bStream, zLen, SEEK_CUR);
+      }
+
+
+      return(Rcpp::List::create(Named("SNPID") = string(snpID),
+                                Named("RSID") = string(rsID),
+                                Named("Chromosome") = string(chrStr),
+                                Named("Position") = physpos,
+                                Named("Alleles") = LKnum,
+                                Named("Allele1") = NA_REAL,
+                                Named("Allele2") = NA_REAL,
+                                Named("AF") = NA_REAL,
+                                Named("Probabilities") = NA_REAL,
+                                Named("Dosages") = NA_REAL));
+  }
+
   
+
   uchar* prob_start;
   uint cLen; 
   ret = fread(&cLen, 4, 1, bStream);
@@ -478,6 +513,7 @@ Rcpp::List query_bgen13(){
                             Named("RSID") = string(rsID),
                             Named("Chromosome") = string(chrStr),
                             Named("Position") = physpos,
+                            Named("Alleles") = LKnum,
                             Named("Allele1")  = string(allele0),
                             Named("Allele2")  = string(allele1),
                             Named("AF") = AF,
