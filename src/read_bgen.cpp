@@ -616,6 +616,7 @@ Rcpp::DataFrame get_variantBlock(){
   Rcpp::CharacterVector  vecRSID(Nsamples);
   Rcpp::CharacterVector  vecCHR(Nsamples);
   Rcpp::NumericVector    vecPOS(Nsamples);
+  Rcpp::NumericVector    vecLK(Nsamples);
   Rcpp::CharacterVector  vecA1(Nsamples);
   Rcpp::CharacterVector  vecA2(Nsamples);
   
@@ -660,9 +661,40 @@ Rcpp::DataFrame get_variantBlock(){
        uint32_t physpos; 
        ret = fread(&physpos, 4, 1, bStream);
        
+       uint16_t LKnum;
        if (Layout == 2) {
-           ushort LKnum; 
-           ret = fread(&LKnum, 2, 1, bStream);
+           ret = fread(&LKnum, 2, 1, bStream); 
+
+           if (LKnum != 2U) {
+               for (uint16_t a = 0; a < LKnum; a++) {
+                    uint32_t LA;
+                    ret = fread(&LA, 4, 1, bStream);
+                    ret = fread(allele1, 1, LA, bStream);
+               }
+
+               if (Compression > 0) {
+                   uint zLen;
+                   ret = fread(&zLen, 4, 1, bStream);
+                   fseek(bStream, 4 + zLen - 4, SEEK_CUR);
+
+               }
+               else {
+                   uint zLen;
+                   ret = fread(&zLen, 4, 1, bStream);
+                   fseek(bStream, zLen, SEEK_CUR);
+               }
+
+               vecSNPID[m] = snpID;
+               vecRSID[m]  = rsID;
+               vecCHR[m]   = chrStr;
+               vecPOS[m]   = physpos;
+               vecLK[m]    = LKnum;
+               vecA1[m]    = "";
+               vecA2[m]    = "";
+           }
+       }
+       else {
+           LKnum = 2U;
        }
     
        uint32_t LA; 
@@ -704,6 +736,7 @@ Rcpp::DataFrame get_variantBlock(){
        vecRSID[m]  = rsID;
        vecCHR[m]   = chrStr;
        vecPOS[m]   = physpos;
+       vecLK[m]    = LKnum;
        vecA1[m]    = allele1;
        vecA2[m]    = allele0;
 
@@ -716,6 +749,7 @@ Rcpp::DataFrame get_variantBlock(){
                                  Named("RSID")  = vecRSID,
                                  Named("CHR")   = vecCHR,
                                  Named("POS")   = vecPOS,
+                                 Named("ALLELES") = vecLK,
                                  Named("A1")    = vecA1,
                                  Named("A2")    = vecA2));  
 }
