@@ -253,7 +253,6 @@ Rcpp::List query_bgen13(){
   NumericMatrix probs(Nsamples, 2);
   NumericVector dosVec(Nsamples);
   int ret;
-  bool skip = false;
 
 
   ushort LS; 
