@@ -26,5 +26,5 @@ close_bgen <- function() {
 
 
 get_VariantBlock <- function(){
-  .Call('_bgenR_get_variantBlock', PACKAGE = 'bgenR')
+  .Call('_bgenR_get_vblock', PACKAGE = 'bgenR')
 }

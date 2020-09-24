@@ -600,7 +600,7 @@ Rcpp::List query_bgen11(){
   
   
   
-Rcpp::DataFrame get_variantBlock(){
+Rcpp::DataFrame get_vblock(){
   
 
 

@@ -41,12 +41,12 @@ RcppExport SEXP _bgenR_close_bgen() {
 
 
 // get_VariantBlock
-Rcpp::DataFrame get_variantBlock();
-RcppExport SEXP _bgenR_get_variantBlock() {
+Rcpp::DataFrame get_vblock();
+RcppExport SEXP _bgenR_get_vblock() {
     BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_variantBlock());
+    rcpp_result_gen = Rcpp::wrap(get_vblock());
     return rcpp_result_gen;
     END_RCPP
 }
@@ -57,7 +57,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_bgenR_open_bgen", (DL_FUNC) &_bgenR_open_bgen, 1},
     {"_bgenR_query_bgen", (DL_FUNC) &_bgenR_query_bgen, 0},
     {"_bgenR_close_bgen", (DL_FUNC) &_bgenR_close_bgen, 0},  
-    {"_bgenR_get_variantBlock", (DL_FUNC) &_bgenR_get_variantBlock, 0},
+    {"_bgenR_get_variantBlock", (DL_FUNC) &_bgenR_get_vblock, 0},
     {NULL, NULL, 0}
 };
 
