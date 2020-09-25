@@ -39,6 +39,27 @@ Rcpp::String close_bgen(){
        Rcpp::stop("BGEN file is already closed.");
     }
     
+    if (bgen.Layout == 1) {
+        if (bgen.Compression == 1) {
+            zBuf11.clear();
+            shortBuf12.clear();
+        }
+        else {
+            zBuf11.clear();
+        }
+    }
+
+    if (bgen.Layout == 2) {
+
+        if (bgen.Compression > 0) {
+            zBuf12.clear();
+            shortBuf12.clear();
+        }
+        else {
+            zBuf12.clear();
+        }
+    }
+
     if (bgen.Compression == 1) {
         libdeflate_free_decompressor(decompressor);
     }
@@ -53,6 +74,9 @@ Rcpp::String close_bgen(){
 
 Rcpp::List open_bgen(SEXP bgenfile_in){
   
+    if (bStream != NULL) {
+        Rcpp::stop("A BGEN file is already open. Use close_bgen() to close the open BGEN file.");
+    }
     string bgenfile = Rcpp::as<string>(bgenfile_in);
     
     
@@ -356,11 +380,11 @@ Rcpp::List query_bgen13(){
       memcpy(&K, &(prob_start[4]), sizeof(int16_t));
 
       const uint32_t min_ploidy = prob_start[6];
-      if (min_ploidy > 2) { 
+      if (min_ploidy != 2) { 
           Rcpp::stop("Variants with ploidy != 2 is currently not supported."); 
       }
       const uint32_t max_ploidy = prob_start[7];
-      if (max_ploidy > 2) { 
+      if (max_ploidy != 2) { 
           Rcpp::stop("Variants with ploidy != 2 is currently not supported."); 
       }
 
