@@ -272,19 +272,22 @@ Rcpp::List query_bgen13(){
       char* snpID = new char[LS + 1];
       ret = fread(snpID, 1, LS, bStream); 
       snpID[LS] = '\0';
+      Rcpp::String snpID_2 = string(snpID);
   
       uint16_t LR; 
       ret = fread(&LR, 2, 1, bStream);
       char* rsID = new char[LR + 1];
       ret = fread(rsID, 1, LR, bStream); 
       rsID[LR] = '\0';
-  
+      Rcpp::String rsID_2 = string(rsID);
+      
       uint16_t LC; 
       ret = fread(&LC, 2, 1, bStream);
       char* chrStr = new char[LC + 1];
       ret = fread(chrStr, 1, LC, bStream); 
       chrStr[LC] = '\0';
-
+      Rcpp::String chrStr_2 = string(chrStr);
+      
       uint32_t physpos; 
       ret = fread(&physpos, 4, 1, bStream);
 
@@ -310,9 +313,9 @@ Rcpp::List query_bgen13(){
               fseek(bStream, zLen, SEEK_CUR);
           }
           delete[] allele1;
-          return(Rcpp::List::create(Named("SNPID") = string(snpID),
-                                    Named("RSID") = string(rsID),
-                                    Named("Chromosome") = string(chrStr),
+          return(Rcpp::List::create(Named("SNPID") = snpID_2,
+                                    Named("RSID") = rsID_2,
+                                    Named("Chromosome") = chrStr_2,
                                     Named("Position") = physpos,
                                     Named("Alleles") = LKnum,
                                     Named("Allele1") = NA_REAL,
@@ -327,13 +330,14 @@ Rcpp::List query_bgen13(){
       char* allele1 = new char[LA + 1];
       ret = fread(allele1, 1, LA, bStream); 
       allele1[LA] = '\0';
-  
+      Rcpp::String allele1_2 = string(allele1);
+      
       uint32_t LB; 
       ret = fread(&LB, 4, 1, bStream);
-      char* allele0 = new char[LB + 1];
-      ret = fread(allele0, 1, LB, bStream); 
-      allele0[LB] = '\0';
-  
+      char* allele2 = new char[LB + 1];
+      ret = fread(allele2, 1, LB, bStream); 
+      allele2[LB] = '\0';
+      Rcpp::String allele2_2 = string(allele2);
 
       uchar* prob_start;
       uint cLen; 
@@ -404,7 +408,7 @@ Rcpp::List query_bgen13(){
   
   
       double gmean = 0.0;
-  
+      double nmiss = 0.0;
       if(!is_phased){
     
          for (uint32_t i = 0; i < N; i++) {
@@ -432,9 +436,10 @@ Rcpp::List query_bgen13(){
                  probs(i, 0) = NA_REAL;
                  probs(i, 1) = NA_REAL;
                  dosVec[i]   = NA_REAL;
+                 nmiss+=1.0;
               }
               else {
-                  Rcpp::stop("Variants with ploidy != 2 is currently not supported.");
+                 Rcpp::stop("Variants with ploidy != 2 is currently not supported.");
               }
          }
     
@@ -464,6 +469,7 @@ Rcpp::List query_bgen13(){
                     probs(i, 0) = NA_REAL;
                     probs(i, 1) = NA_REAL;
                     dosVec[i] = NA_REAL;
+                    nmiss+=1;
                 }
                 else {
                     Rcpp::stop("Variants with ploidy != 2 is currently not supported.");
@@ -476,20 +482,20 @@ Rcpp::List query_bgen13(){
           Rcout << "End of BGEN file has been reached. Please close the file with close_bgen().\n";
       }
   
-      double AF = gmean / Nsamples / 2.0;
+      double AF = gmean / (Nsamples-nmiss) / 2.0;
       
       delete[] snpID;
       delete[] rsID;
       delete[] chrStr;
       delete[] allele1;
-      delete[] allele0;
-      return(Rcpp::List::create(Named("SNPID") = string(snpID),
-                                Named("RSID") = string(rsID),
-                                Named("Chromosome") = string(chrStr),
+      delete[] allele2;
+      return(Rcpp::List::create(Named("SNPID") = snpID_2,
+                                Named("RSID") = rsID_2,
+                                Named("Chromosome") = chrStr_2,
                                 Named("Position") = physpos,
                                 Named("Alleles") = LKnum,
-                                Named("Allele1")  = string(allele0),
-                                Named("Allele2")  = string(allele1),
+                                Named("Allele1")  = allele1_2,
+                                Named("Allele2")  = allele2_2,
                                 Named("AF") = AF,
                                 Named("Probabilities") = probs,
                                 Named("Dosages") = dosVec));
@@ -528,19 +534,22 @@ Rcpp::List query_bgen11(){
     char* snpID = new char[LS + 1];
     ret = fread(snpID, 1, LS, bStream); 
     snpID[LS] = '\0';
+    String snpID_2 = string(snpID);
     
     uint16_t LR; 
     ret = fread(&LR, 2, 1, bStream);
     char* rsID = new char[LR + 1];
     ret = fread(rsID, 1, LR, bStream); 
     rsID[LR] = '\0';
+    String rsID_2 = string(rsID);
     
     uint16_t LC; 
     ret = fread(&LC, 2, 1, bStream);
     char* chrStr = new char[LC + 1];
     ret = fread(chrStr, 1, LC, bStream); 
     chrStr[LC] = '\0';
-
+    String chrStr_2 = string(chrStr);
+    
     uint32_t physpos; 
     ret = fread(&physpos, 4, 1, bStream);
     
@@ -549,13 +558,14 @@ Rcpp::List query_bgen11(){
     char* allele1 = new char[LA + 1];
     ret = fread(allele1, 1, LA, bStream); 
     allele1[LA] = '\0';
+    String allele1_2 = string(allele1);
     
     uint32_t LB; 
     ret = fread(&LB, 4, 1, bStream);
-    char* allele0 = new char[LB + 1];
-    ret = fread(allele0, 1, LB, bStream); 
-    allele0[LB] = '\0';
-    
+    char* allele2 = new char[LB + 1];
+    ret = fread(allele2, 1, LB, bStream); 
+    allele2[LB] = '\0';
+    String allele2_2 = string(allele2);
     
     uint16_t* probs_start;
     if (Compression == 1) {
@@ -580,20 +590,32 @@ Rcpp::List query_bgen11(){
 
     const double scale = 1.0 / 32768;
     double gmean = 0.0;
+    double nmiss = 0.0;
     for (uint i = 0; i < Nsamples; i++) {
          double p11 = probs_start[3 * i] * scale;
          double p10 = probs_start[3 * i + 1] * scale;
          double p00 = probs_start[3 * i + 2] * scale;
-         double pTot = p11 + p10 + p00;
-         double dosage = (2 * p00 + p10) / pTot;
-        
-
-         probs(i, 0) = p11;
-         probs(i, 1) = p10;
-         probs(i, 2) = p00;
          
-         dosVec[i] = dosage;
-         gmean += dosage;
+         if (p11 == 0.0 && p10 == 0.0 && p00 == 0.0) {
+           probs(i, 0) = NA_REAL;
+           probs(i, 1) = NA_REAL;
+           probs(i, 2) = NA_REAL;
+           dosVec[i]   = NA_REAL;
+           nmiss+=1.0;
+          
+         } else {
+           double pTot = p11 + p10 + p00;
+           double dosage = (2 * p00 + p10) / pTot;
+           
+           
+           probs(i, 0) = p11;
+           probs(i, 1) = p10;
+           probs(i, 2) = p00;
+           
+           dosVec[i] = dosage;
+           gmean += dosage;
+           
+         }
             
     }
     
@@ -602,19 +624,19 @@ Rcpp::List query_bgen11(){
         Rcout << "End of BGEN file has been reached. Please close the file with close_bgen().\n";
     }
   
-    double AF = gmean / Nsamples / 2.0;
+    double AF = gmean / (Nsamples-nmiss) / 2.0;
     
     delete[] snpID;
     delete[] rsID;
     delete[] chrStr;
     delete[] allele1;
-    delete[] allele0;
-    return(Rcpp::List::create(Named("SNPID") = string(snpID),
-                              Named("RSID") = string(rsID),
-                              Named("Chromosome") = string(chrStr),
+    delete[] allele2;
+    return(Rcpp::List::create(Named("SNPID") = snpID_2,
+                              Named("RSID") = rsID_2,
+                              Named("Chromosome") = chrStr_2,
                               Named("Position") = physpos,
-                              Named("Allele1")  = string(allele0),
-                              Named("Allele2")  = string(allele1),
+                              Named("Allele1")  = allele1_2,
+                              Named("Allele2")  = allele2_2,
                               Named("AF") = AF,
                               Named("Probabilities") = probs,
                               Named("Dosages") = dosVec));
@@ -641,18 +663,19 @@ Rcpp::DataFrame get_vblock(){
     Rcpp::NumericVector    vecLK(nvars);
     Rcpp::CharacterVector  vecA1(nvars);
     Rcpp::CharacterVector  vecA2(nvars);
+    Rcpp::NumericVector    vecBYTE(nvars);
     
     char* snpID   = new char[maxLA + 1];
     char* rsID    = new char[maxLA + 1];
     char* chrStr  = new char[maxLA + 1];
     char* allele1 = new char[maxLA + 1];
-    char* allele0 = new char[maxLA + 1];
+    char* allele2 = new char[maxLA + 1];
     
     fseek(bStream, bgen.offset + 4, SEEK_SET);
     
     for (uint m = 0; m < nvars; m++) {
          int ret;
-         
+         long long unsigned int byte = ftell(bStream);
          if (Layout == 1) {
              uint Nrow;
              ret = fread(&Nrow, 4, 1, bStream);
@@ -662,17 +685,20 @@ Rcpp::DataFrame get_vblock(){
          ret = fread(&LS, 2, 1, bStream);
          ret = fread(snpID, 1, LS, bStream); 
          snpID[LS] = '\0';
+         Rcpp::String snpID_2 = string(snpID);
          
          uint16_t LR; 
          ret = fread(&LR, 2, 1, bStream);
          ret = fread(rsID, 1, LR, bStream);
          rsID[LR] = '\0';
-  
+         Rcpp::String rsID_2 = string(rsID);
+         
          uint16_t LC; 
          ret = fread(&LC, 2, 1, bStream);
          ret = fread(chrStr, 1, LC, bStream); 
          chrStr[LC] = '\0';
-  
+         Rcpp::String chrStr_2 = string(chrStr);
+         
          uint32_t physpos; 
          ret = fread(&physpos, 4, 1, bStream);
          
@@ -699,13 +725,14 @@ Rcpp::DataFrame get_vblock(){
                      fseek(bStream, zLen, SEEK_CUR);
                  }
   
-                 vecSNPID[m] = snpID;
-                 vecRSID[m]  = rsID;
-                 vecCHR[m]   = chrStr;
+                 vecSNPID[m] = snpID_2;
+                 vecRSID[m]  = rsID_2;
+                 vecCHR[m]   = chrStr_2;
                  vecPOS[m]   = physpos;
                  vecLK[m]    = LKnum;
                  vecA1[m]    = NA_STRING;
                  vecA2[m]    = NA_STRING;
+                 vecBYTE[m]  = byte;
   
                  continue;
              }
@@ -718,12 +745,13 @@ Rcpp::DataFrame get_vblock(){
          ret = fread(&LA, 4, 1, bStream);
          ret = fread(allele1, 1, LA, bStream); 
          allele1[LA] = '\0';
-  
+         Rcpp::String allele1_2 = string(allele1);
+         
          uint32_t LB; 
          ret = fread(&LB, 4, 1, bStream);
-         ret = fread(allele0, 1, LB, bStream); 
-         allele0[LB] = '\0';
-      
+         ret = fread(allele2, 1, LB, bStream); 
+         allele2[LB] = '\0';
+         Rcpp::String allele2_2 = string(allele2);
   
          if (Layout == 2) {
              if (Compression > 0) {
@@ -749,14 +777,14 @@ Rcpp::DataFrame get_vblock(){
              }
          }
          (void)ret;
-         vecSNPID[m] = snpID;
-         vecRSID[m]  = rsID;
-         vecCHR[m]   = chrStr;
+         vecSNPID[m] = snpID_2;
+         vecRSID[m]  = rsID_2;
+         vecCHR[m]   = chrStr_2;
          vecPOS[m]   = physpos;
          vecLK[m]    = LKnum;
-         vecA1[m]    = allele1;
-         vecA2[m]    = allele0;
-  
+         vecA1[m]    = allele1_2;
+         vecA2[m]    = allele2_2;
+         vecBYTE[m] = byte;
     }
     
     fseek(bStream, bgen.offset + 4, SEEK_SET);
@@ -765,7 +793,7 @@ Rcpp::DataFrame get_vblock(){
     delete[] rsID;
     delete[] chrStr;
     delete[] allele1;
-    delete[] allele0;
+    delete[] allele2;
     return(Rcpp::DataFrame::create(Named("SNPID")   = vecSNPID,
                                    Named("RSID")    = vecRSID,
                                    Named("CHR")     = vecCHR,
