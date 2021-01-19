@@ -1,3 +1,5 @@
+CXX_STD=CXX11
+
 SOURCES = zstd-1.4.5/lib/common/debug.c \
 	  zstd-1.4.5/lib/common/entropy_common.c \
 	  zstd-1.4.5/lib/common/error_private.c \
