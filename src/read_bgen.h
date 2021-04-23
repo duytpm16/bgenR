@@ -7,17 +7,14 @@
 #include <vector>
 
 typedef unsigned int   uint;
-typedef unsigned char  uchar;
-typedef unsigned short ushort;
 
-
+using namespace Rcpp;
 class BGEN {
   
   
   public:
     
     // For file
-    FILE* fin;
     std::string bgenFile;
     // For BGEN offset
     uint offset;

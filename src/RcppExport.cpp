@@ -6,34 +6,34 @@
 using namespace Rcpp;
 
 // open_bgen
-List open_bgen(SEXP bgenfile_in);
-RcppExport SEXP _bgenR_open_bgen(SEXP bgenfile_in) {
+List open_bgen(SEXP bgenfile_in, SEXP bytes_in);
+RcppExport SEXP _bgenR_open_bgen(SEXP bgenfile_in, SEXP bytes_in) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(open_bgen(bgenfile_in));
+    rcpp_result_gen = Rcpp::wrap(open_bgen(bgenfile_in, bytes_in));
     return rcpp_result_gen;
 END_RCPP
 }
 
 // query_bgen
-List query_bgen();
-RcppExport SEXP _bgenR_query_bgen() {
+List query_bgen(SEXP bgenR_in, SEXP seek_in);
+RcppExport SEXP _bgenR_query_bgen(SEXP bgenR_in, SEXP seek_in) {
     BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(query_bgen());
+    rcpp_result_gen = Rcpp::wrap(query_bgen(bgenR_in, seek_in));
     return rcpp_result_gen;
     END_RCPP
 }
 
 // close_bgen
-String close_bgen();
-RcppExport SEXP _bgenR_close_bgen() {
+String close_bgen(SEXP bgenR_in);
+RcppExport SEXP _bgenR_close_bgen(SEXP bgenR_in) {
     BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(close_bgen());
+    rcpp_result_gen = Rcpp::wrap(close_bgen(bgenR_in));
     return rcpp_result_gen;
     END_RCPP
 }
@@ -41,12 +41,12 @@ RcppExport SEXP _bgenR_close_bgen() {
 
 
 // get_vblock
-Rcpp::DataFrame get_vblock();
-RcppExport SEXP _bgenR_get_vblock() {
+Rcpp::DataFrame get_vblock(SEXP bgenR_in);
+RcppExport SEXP _bgenR_get_vblock(SEXP bgenR_in) {
     BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_vblock());
+    rcpp_result_gen = Rcpp::wrap(get_vblock(bgenR_in));
     return rcpp_result_gen;
     END_RCPP
 }
@@ -57,7 +57,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_bgenR_open_bgen", (DL_FUNC) &_bgenR_open_bgen, 1},
     {"_bgenR_query_bgen", (DL_FUNC) &_bgenR_query_bgen, 0},
     {"_bgenR_close_bgen", (DL_FUNC) &_bgenR_close_bgen, 0},  
-    {"_bgenR_get_vblock", (DL_FUNC) &_bgenR_get_vblock, 0},
+    {"_bgenR_get_vblock", (DL_FUNC) &_bgenR_get_vblock, 1},
     {NULL, NULL, 0}
 };
 
