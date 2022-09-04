@@ -1,0 +1,17 @@
+Package: bgenR
+Type: Package
+Title: bgenR
+Version: 1.0
+Date: 2022-09-03
+Author: Duy T. Pham
+Maintainer: Duy T. Pham <duytpham18@gmail.com>
+Description: This R package reads BGEN file data into R. All versions of the BGEN file are supported.
+License: GPL (>= 2)
+Depends: R (>= 3.5.0)
+Imports: Rcpp (>= 1.0.4)
+Suggests: 
+    testthat (>= 3.0.0)
+LinkingTo: Rcpp
+Encoding: UTF-8
+RoxygenNote: 7.1.1
+Config/testthat/edition: 3
