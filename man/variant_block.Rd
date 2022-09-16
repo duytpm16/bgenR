@@ -39,7 +39,7 @@ A \code{data.frame} object containing the variant block information for all vari
 }
 \references{
 %% ~put references to the literature/web site here ~
-See https://www.well.ox.ac.uk/~gav/bgen_format/spec/latest.html
+See https://www.well.ox.ac.uk/~gav/bgen_format/spec/latest.html.
 }
 \author{
 %%  ~~who you are~~

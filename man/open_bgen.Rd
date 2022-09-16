@@ -20,7 +20,7 @@ open_bgen(bgenFile, getIndices = FALSE)
 }
   \item{getIndices}{
 %%     ~~Describe \code{getIndices} here~~
-  Locial value indicating where the starting byte position of each variant in the BGEN file should be recorded.
+  Logical value indicating whether the starting byte position of each variant in the BGEN file should be recorded to be used in other functions of the bgenR package. This will increase the runtime of this function for large BGEN files.
 }
 }
 \details{
@@ -46,7 +46,7 @@ A bgenR class list. All elements of the bgenR class list are used in other funct
 }
 \references{
 %% ~put references to the literature/web site here ~
-See https://www.well.ox.ac.uk/~gav/bgen_format/spec/latest.html
+See https://www.well.ox.ac.uk/~gav/bgen_format/spec/latest.html.
 }
 \author{
 %%  ~~who you are~~

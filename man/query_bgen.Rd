@@ -25,7 +25,7 @@ query_bgen(bgenList, seek = NA)
 }
 \details{
 %%  ~~ If necessary, more details than the description above ~~
-If the \code{seek} argument is used, the function will return the variant and genotype block information for the variant at the \code{seek} position. If \code{query_bgen} is called again without specifying a \code{seek} value, the function will return the variant and genotype block information for the variant after the variant at the \code{seek} position. For example, if \code{seek=100}, \code{query_bgen} will return information for the 100th variant. If \code{query_bgen} is used again without the \code{seek} argument, information from the variant and genotype blocks of the 101th variant will be returned. 
+If the \code{seek} argument is used, this function will return the variant and genotype block information for the variant at the \code{seek} position. If \code{query_bgen} is called again without specifying a \code{seek} value, the function will return the variant and genotype block information for the variant after the variant at the \code{seek} position. For example, if \code{seek=100}, \code{query_bgen} will return information for the 100th variant. If \code{query_bgen} is called again without the \code{seek} argument, information from the variant and genotype blocks of the 101th variant will be returned. 
 }
 \value{
 %%  ~Describe the value returned
@@ -48,7 +48,7 @@ A list object containing the variant and genotype block information for one vari
 }
 \references{
 %% ~put references to the literature/web site here ~
-See https://www.well.ox.ac.uk/~gav/bgen_format/spec/latest.html
+See https://www.well.ox.ac.uk/~gav/bgen_format/spec/latest.html.
 }
 \author{
 %%  ~~who you are~~

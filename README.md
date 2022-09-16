@@ -33,10 +33,10 @@ library(bgenR)
 
 # Open the BGEN file
 bgenfile <- system.file("extdata", "bgen12_zlib.bgen", package = "bgenR")
-bgen = open_bgen(bgenfile)
+bgen <- open_bgen(bgenfile)
 
 # Number of variants
-M = bgen$M
+M <- bgen$M
 
 # Iterate over all variants in the BGEN file
 for(i in 1:M){
@@ -56,7 +56,7 @@ library(bgenR)
 
 # Open the BGEN file
 bgenfile <- system.file("extdata", "bgen12_zlib.bgen", package = "bgenR")
-bgen = open_bgen(bgenfile, getIndices = TRUE)
+bgen <- open_bgen(bgenfile, getIndices = TRUE)
 
 # Get information for variant at specific index
 info <- query_bgen(bgen, seek = 100)
