@@ -17,6 +17,21 @@ Rcpp::List query_bgen(SEXP bgenR_in, SEXP seek_in)
   return(NA_REAL);
 } 
 
+Rcpp::List query_bgen_zlib(SEXP bgenR_in, SEXP seek_in)
+{
+  Rcpp::List bgenR_list(bgenR_in);
+  
+  uint Layout = Rcpp::as<uint>(bgenR_list["layout_flag"]);
+  if(Layout == 2){
+    return(query_bgen13_zlib(bgenR_in, seek_in));
+  }
+  else if(Layout == 1){
+    return(query_bgen11(bgenR_in, seek_in));
+  }
+  
+  return(NA_REAL);
+} 
+
 
 Rcpp::String close_bgen(SEXP bgenR_in)
 {
@@ -485,7 +500,289 @@ Rcpp::List query_bgen13(SEXP bgenR_in, SEXP seek_in)
 }
 
 
-
+Rcpp::List query_bgen13_zlib(SEXP bgenR_in, SEXP seek_in)
+{
+  Rcpp::List bgenR_list(bgenR_in);
+  
+  FILE* fstream = (FILE*)R_ExternalPtrAddr(bgenR_list["fin"]);
+  if (fstream == NULL) {
+    Rcpp::stop("BGEN file is not open. Open the BGEN file with open_bgen().");
+  }
+  
+  
+  // Initialize objects
+  int ret;
+  uint m = Rcpp::as<uint>(bgenR_list["M"]);
+  uint n = Rcpp::as<uint>(bgenR_list["N"]);
+  uint c = Rcpp::as<uint>(bgenR_list["compression_flag"]);
+  
+  NumericMatrix probs(n, 2);
+  NumericVector dosVec(n);
+  
+  std::vector<uint>* fcounter = (std::vector<uint>*)R_ExternalPtrAddr(bgenR_list["fcounter"]);
+  std::vector<uint>& current_count = *fcounter;   
+  
+  
+  // Seek
+  uint seek = Rcpp::as<uint>(seek_in);
+  if (seek > 0) {
+    std::vector<ulli>* findex = (std::vector<ulli>*)R_ExternalPtrAddr(bgenR_list["findex"]);
+    if (findex == NULL) {
+      Rcpp::stop("Specify `getIndicies=TRUE` with open_bgen() to use the `seek` argument of this function.");
+    }
+    
+    std::vector<ulli>& index  = *findex;
+    fseek(fstream, index[seek-1], SEEK_SET);
+    current_count[0] = seek-1;
+  }
+  
+  
+  // Check counter
+  if (current_count[0] >= m){
+    Rcpp::stop("End of BGEN file has been reached. Close the file or seek to previous variants.");
+  }
+  
+  
+  
+  
+  // Query
+  llui curr = ftell(fstream);
+  
+  uint16_t LS;
+  ret = fread(&LS, 2, 1, fstream);
+  char* snpID = new char[LS + 1];
+  ret = fread(snpID, 1, LS, fstream);
+  snpID[LS] = '\0';
+  std::string snpID2(snpID);
+  
+  uint16_t LR;
+  ret = fread(&LR, 2, 1, fstream);
+  char* rsID = new char[LR + 1];
+  ret = fread(rsID, 1, LR, fstream);
+  rsID[LR] = '\0';
+  std::string rsID2(rsID);
+  
+  uint16_t LC;
+  ret = fread(&LC, 2, 1, fstream);
+  char* chr = new char[LC + 1];
+  ret = fread(chr, 1, LC, fstream);
+  chr[LC] = '\0';
+  std::string chr2(chr);
+  
+  uint32_t physpos;
+  ret = fread(&physpos, 4, 1, fstream);
+  
+  uint16_t LKnum;
+  ret = fread(&LKnum, 2, 1, fstream);
+  if (LKnum != 2U) {
+    char* allele1 = new char[65537];
+    for (uint16_t a = 0; a < LKnum; a++) {
+      uint32_t LA;
+      ret = fread(&LA, 4, 1, fstream);
+      ret = fread(allele1, 1, LA, fstream);
+    }
+    
+    if (c > 0) {
+      uint zLen;
+      ret = fread(&zLen, 4, 1, fstream);
+      fseek(fstream, 4 + zLen - 4, SEEK_CUR);
+      
+    }
+    else {
+      uint zLen;
+      ret = fread(&zLen, 4, 1, fstream);
+      fseek(fstream, zLen, SEEK_CUR);
+    }
+    delete[] allele1;
+    
+    current_count[0]++;
+    return(Rcpp::List::create(Named("SNPID")         = Rcpp::String(snpID2),
+                              Named("RSID")          = Rcpp::String(rsID2),
+                              Named("Chromosome")    = Rcpp::String(chr2),
+                              Named("Position")      = physpos,
+                              Named("Alleles")       = LKnum,
+                              Named("Allele1")       = NA_REAL,
+                              Named("Allele2")       = NA_REAL,
+                              Named("AF")            = NA_REAL,
+                              Named("Probabilities") = NA_REAL,
+                              Named("Dosages")       = NA_REAL));
+  }
+  
+  uint32_t LA;
+  ret = fread(&LA, 4, 1, fstream);
+  char* allele1 = new char[LA + 1];
+  ret = fread(allele1, 1, LA, fstream);
+  allele1[LA] = '\0';
+  
+  uint32_t LB;
+  ret = fread(&LB, 4, 1, fstream);
+  char* allele2 = new char[LB + 1];
+  ret = fread(allele2, 1, LB, fstream);
+  allele2[LB] = '\0';
+  
+  uint cLen;
+  ret = fread(&cLen, 4, 1, fstream);
+  
+  uchar* prob_start;
+  std::vector<uchar> zBuf12;
+  std::vector<uchar> shortBuf12;
+  if (c == 1) {
+    zBuf12.resize(cLen - 4);
+    uint dLen;
+    ret = fread(&dLen, 4, 1, fstream);
+    ret = fread(&zBuf12[0], 1, cLen - 4, fstream);
+    shortBuf12.resize(dLen);
+    
+    uLongf destLen = dLen;
+    if (uncompress(&shortBuf12[0], &destLen, &zBuf12[0], cLen-4) != Z_OK || destLen != dLen) {
+      fseek(fstream, curr, SEEK_SET);
+      Rcpp::stop("Decompressing " + std::string(rsID) + " genotype block failed with libdeflate.");
+    }
+    prob_start = &shortBuf12[0];
+  }
+  else if (c == 2) {
+    zBuf12.resize(cLen - 4);
+    uint dLen;
+    ret = fread(&dLen, 4, 1, fstream);
+    ret = fread(&zBuf12[0], 1, cLen - 4, fstream);
+    shortBuf12.resize(dLen);
+    
+    uLongf destLen = dLen;
+    size_t ret = ZSTD_decompress(&shortBuf12[0], destLen, &zBuf12[0], cLen - 4);
+    if (ret > destLen) {
+      if (ZSTD_isError(ret)) {
+        fseek(fstream, curr, SEEK_SET);
+        Rcpp::stop("Decompressing " + std::string(rsID) + " genotype block failed with zstd.");
+      }
+    }
+    prob_start = &shortBuf12[0];
+  }
+  else {
+    zBuf12.resize(cLen);
+    ret = fread(&zBuf12[0], 1, cLen, fstream);
+    prob_start = &zBuf12[0];
+  }
+  (void)ret;
+  
+  uint32_t N;
+  memcpy(&N, prob_start, sizeof(int32_t));
+  uint16_t K;
+  memcpy(&K, &(prob_start[4]), sizeof(int16_t));
+  
+  const uint32_t min_ploidy = prob_start[6];
+  if (min_ploidy != 2) {
+    fseek(fstream, curr, SEEK_SET);
+    Rcpp::stop("Variants with ploidy != 2 is currently not supported.");
+  }
+  const uint32_t max_ploidy = prob_start[7];
+  if (max_ploidy != 2) {
+    fseek(fstream, curr, SEEK_SET);
+    Rcpp::stop("Variants with ploidy != 2 is currently not supported.");
+  }
+  
+  const unsigned char* missing_and_ploidy_info = &(prob_start[8]);
+  const unsigned char* probs_start = &(prob_start[10 + N]);
+  const uint32_t is_phased = probs_start[-2];
+  if (is_phased != 0 && is_phased != 1) {
+    fseek(fstream, curr, SEEK_SET);
+    Rcpp::stop("phased value must be 0 or 1.");
+  } 
+  
+  const uint32_t B = probs_start[-1];
+  if (B != 8 && B != 16 && B != 24 && B != 32) {
+    fseek(fstream, curr, SEEK_SET);
+    Rcpp::stop("Bits to store probabilities must be 8, 16, 24, or 32.");
+  }
+  const uintptr_t numer_mask = (1U << B) - 1;
+  const uintptr_t probs_offset = B / 8;
+  
+  
+  double gmean = 0.0;
+  double nmiss = 0.0;
+  if (!is_phased) {
+    for (uint32_t i = 0; i < N; i++) {
+      const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
+      
+      if(missing_and_ploidy == 2){
+        uintptr_t numer_aa;
+        uintptr_t numer_ab;
+        Bgen13GetTwoVals(probs_start, B, probs_offset, &numer_aa, &numer_ab);
+        
+        double p11 = numer_aa / double(1.0 * (numer_mask));
+        double p10 = numer_ab / double(1.0 * (numer_mask));
+        double dosage = 2 * (1 - p11 - p10) + p10;
+        probs(i, 0) = p11;
+        probs(i, 1) = p10;
+        dosVec[i]   = dosage;
+        gmean += dosage;
+        
+        probs_start += (probs_offset * 2);
+      }
+      else if (missing_and_ploidy == 130) {
+        probs(i, 0) = NA_REAL;
+        probs(i, 1) = NA_REAL;
+        dosVec[i]   = NA_REAL;
+        nmiss+=1.0;
+      }
+      else {
+        fseek(fstream, curr, SEEK_SET);
+        Rcpp::stop("Variants with ploidy != 2 is currently not supported.");
+      }
+    }
+    
+  } else if(is_phased){
+    for (uint32_t i = 0; i < N; i++) {
+      const uint32_t missing_and_ploidy = missing_and_ploidy_info[i];
+      
+      if (missing_and_ploidy == 2) {
+        uintptr_t numer_aa;
+        uintptr_t numer_ab;
+        Bgen13GetTwoVals(probs_start, B, probs_offset, &numer_aa, &numer_ab);
+        
+        double p11 = numer_aa / double(1.0 * (numer_mask));
+        double p10 = numer_ab / double(1.0 * (numer_mask));
+        double dosage = 2 - (p11 + p10);
+        probs(i, 0) = p11;
+        probs(i, 1) = p10;
+        dosVec[i]   = dosage;
+        gmean += dosage;
+        
+        probs_start += (probs_offset * 2);
+      }
+      else if (missing_and_ploidy == 130) {
+        probs(i, 0) = NA_REAL;
+        probs(i, 1) = NA_REAL;
+        dosVec[i]   = NA_REAL;
+        nmiss+=1;
+      }
+      else {
+        fseek(fstream, curr, SEEK_SET);
+        Rcpp::stop("Variants with ploidy != 2 is currently not supported.");
+      }
+    }
+    
+  }
+  double AF = gmean / (n-nmiss) / 2.0;
+  
+  delete[] snpID;
+  delete[] rsID;
+  delete[] chr;
+  delete[] allele1;
+  delete[] allele2;
+  
+  current_count[0]++;
+  return(Rcpp::List::create(Named("SNPID")         = Rcpp::String(snpID),
+                            Named("RSID")          = Rcpp::String(rsID),
+                            Named("Chromosome")    = Rcpp::String(chr),
+                            Named("Position")      = physpos,
+                            Named("Alleles")       = LKnum,
+                            Named("Allele1")       = Rcpp::String(allele1),
+                            Named("Allele2")       = Rcpp::String(allele2),
+                            Named("AF")            = AF,
+                            Named("Probabilities") = probs,
+                            Named("Missing")       = nmiss,
+                            Named("Dosages")       = dosVec));
+}
 
 
 Rcpp::List query_bgen11(SEXP bgenR_in, SEXP seek_in)

@@ -27,6 +27,17 @@ RcppExport SEXP _bgenR_query_bgen(SEXP bgenR_in, SEXP seek_in) {
     END_RCPP
 }
 
+// query_bgen_zlib
+List query_bgen_zlib(SEXP bgenR_in, SEXP seek_in);
+RcppExport SEXP _bgenR_query_bgen_zlib(SEXP bgenR_in, SEXP seek_in) {
+  BEGIN_RCPP
+  Rcpp::RObject rcpp_result_gen;
+  Rcpp::RNGScope rcpp_rngScope_gen;
+  rcpp_result_gen = Rcpp::wrap(query_bgen_zlib(bgenR_in, seek_in));
+  return rcpp_result_gen;
+  END_RCPP
+}
+
 // close_bgen
 String close_bgen(SEXP bgenR_in);
 RcppExport SEXP _bgenR_close_bgen(SEXP bgenR_in) {
@@ -56,6 +67,7 @@ RcppExport SEXP _bgenR_variant_block(SEXP bgenR_in) {
 static const R_CallMethodDef CallEntries[] = {
     {"_bgenR_open_bgen", (DL_FUNC) &_bgenR_open_bgen, 1},
     {"_bgenR_query_bgen", (DL_FUNC) &_bgenR_query_bgen, 0},
+    {"_bgenR_query_bgen_zlib", (DL_FUNC) &_bgenR_query_bgen_zlib, 0},
     {"_bgenR_close_bgen", (DL_FUNC) &_bgenR_close_bgen, 0},  
     {"_bgenR_variant_block", (DL_FUNC) &_bgenR_variant_block, 1},
     {NULL, NULL, 0}

@@ -34,6 +34,7 @@ class BGEN {
 
 Rcpp::List query_bgen11(SEXP bgenR_in, SEXP seek_in);
 Rcpp::List query_bgen13(SEXP bgenR_in, SEXP seek_in);
+Rcpp::List query_bgen13_zlib(SEXP bgenR_in, SEXP seek_in);
 std::vector<llui>* get_bytes(bool getIndices_in, FILE* & bStream_in, uint offset_in, uint layout_in, uint M_in, uint N_in, uint compression_in);
 #endif
 
