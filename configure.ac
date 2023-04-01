@@ -70,7 +70,7 @@ dnl dnl compile libdeflate-1.18
 dnl AC_MSG_NOTICE([Finished building libdeflate library])
 dnl base_dir=$(pwd)
 dnl LIBDEFLATE_CFLAGS=$("${R_HOME}/bin/R" CMD config CFLAGS)
-dnl LIBDEFLATE_LIBS="$base_dir/src/libdeflate/lib/libzstd.a"
+dnl LIBDEFLATE_LIBS="$base_dir/src/libdeflate/lib/libdeflate.a"
 dnl AC_CONFIG_COMMANDS([libdeflate compiling],
 dnl                    [make -C src/libdeflate/lib lib CFLAGS="-fPIC ${LIBDEFLATE_CFLAGS}"])
 
