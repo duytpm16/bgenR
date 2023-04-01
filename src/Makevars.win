@@ -1,61 +1,56 @@
-CXX_STD=CXX11
-
-SOURCES = zstd-1.4.5/lib/common/debug.c \
-	  zstd-1.4.5/lib/common/entropy_common.c \
-	  zstd-1.4.5/lib/common/error_private.c \
-	  zstd-1.4.5/lib/common/fse_decompress.c \
-	  zstd-1.4.5/lib/common/pool.c \
-	  zstd-1.4.5/lib/common/threading.c \
-	  zstd-1.4.5/lib/common/xxhash.c \
-          zstd-1.4.5/lib/common/zstd_common.c \
-          zstd-1.4.5/lib/decompress/huf_decompress.c \
-          zstd-1.4.5/lib/decompress/zstd_ddict.c \
-          zstd-1.4.5/lib/decompress/zstd_decompress.c \
-          zstd-1.4.5/lib/decompress/zstd_decompress_block.c \
-	  libdeflate-1.6/lib/adler32.c \
-	  libdeflate-1.6/lib/crc32.c \
-	  libdeflate-1.6/lib/deflate_compress.c \
-	  libdeflate-1.6/lib/deflate_decompress.c \
-	  libdeflate-1.6/lib/utils.c \
-	  libdeflate-1.6/lib/zlib_compress.c \
-	  libdeflate-1.6/lib/zlib_decompress.c \
-	  libdeflate-1.6/lib/arm/cpu_features.c \
-	  libdeflate-1.6/lib/x86/cpu_features.c
-
-OBJECTS = RcppExport.o \
-	  read_bgen.o \
-	  zstd-1.4.5/lib/common/debug.o \
-	  zstd-1.4.5/lib/common/entropy_common.o \
-	  zstd-1.4.5/lib/common/error_private.o \
-	  zstd-1.4.5/lib/common/fse_decompress.o \
-	  zstd-1.4.5/lib/common/pool.o \
-	  zstd-1.4.5/lib/common/threading.o \
-	  zstd-1.4.5/lib/common/xxhash.o \
-          zstd-1.4.5/lib/common/zstd_common.o \
-          zstd-1.4.5/lib/decompress/huf_decompress.o \
-          zstd-1.4.5/lib/decompress/zstd_ddict.o \
-          zstd-1.4.5/lib/decompress/zstd_decompress.o \
-          zstd-1.4.5/lib/decompress/zstd_decompress_block.o \
-	  libdeflate-1.6/lib/adler32.o \
-	  libdeflate-1.6/lib/crc32.o \
-	  libdeflate-1.6/lib/deflate_compress.o \
-	  libdeflate-1.6/lib/deflate_decompress.o \
-	  libdeflate-1.6/lib/utils.o \
-	  libdeflate-1.6/lib/zlib_compress.o \
-	  libdeflate-1.6/lib/zlib_decompress.o \
-	  libdeflate-1.6/lib/arm/cpu_features.o \
-	  libdeflate-1.6/lib/x86/cpu_features.o
-
-PKG_LIBS = -lz
+##PKG_CFLAGS=-I. -DNDEBUG #-D_USE_KNETFILE
+## don't use -I. => otherwise our IO.h will confuse a system header file
+## also don't use _USE_KNETFILE or it will not compile
+PKG_LIBS=-lz
 
 
+PKG_CPPFLAGS+=-Izstd/lib -Izstd/lib/common
+ZSTD_OBJ = zstd/lib/common/debug.o \
+           zstd/lib/common/entropy_common.o \
+           zstd/lib/common/error_private.o \
+           zstd/lib/common/fse_decompress.o \
+           zstd/lib/common/pool.o \
+           zstd/lib/common/threading.o \
+           zstd/lib/common/xxhash.o \
+           zstd/lib/common/zstd_common.o \
+           zstd/lib/compress/fse_compress.o \
+           zstd/lib/compress/hist.o \
+           zstd/lib/compress/huf_compress.o \
+           zstd/lib/compress/zstd_compress.o \
+           zstd/lib/compress/zstd_compress_literals.o \
+           zstd/lib/compress/zstd_compress_sequences.o \
+           zstd/lib/compress/zstd_compress_superblock.o \
+           zstd/lib/compress/zstd_double_fast.o \
+           zstd/lib/compress/zstd_fast.o \
+           zstd/lib/compress/zstd_lazy.o \
+           zstd/lib/compress/zstd_ldm.o \
+           zstd/lib/compress/zstd_opt.o \
+           zstd/lib/compress/zstdmt_compress.o \
+           zstd/lib/decompress/huf_decompress.o \
+           zstd/lib/decompress/zstd_ddict.o \
+           zstd/lib/decompress/zstd_decompress.o \
+           zstd/lib/decompress/zstd_decompress_block.o \
+           zstd/lib/deprecated/zbuff_common.o \
+           zstd/lib/deprecated/zbuff_compress.o \
+           zstd/lib/deprecated/zbuff_decompress.o \
+           zstd/lib/dictBuilder/cover.o \
+           zstd/lib/dictBuilder/divsufsort.o \
+           zstd/lib/dictBuilder/fastcover.o \
+           zstd/lib/dictBuilder/zdict.o
 
-all: $(SHLIB)
+LIBDEFLATE_OBJ = libdeflate/lib/arm/cpu_features.o \
+                 libdeflate/lib/x86/cpu_features.o \
+                 libdeflate/lib/adler32.o \
+                 libdeflate/lib/crc32.o \
+                 libdeflate/lib/deflate_compress.o \
+                 libdeflate/lib/deflate_decompress.o \
+                 libdeflate/lib/gzip_compress.o \
+                 libdeflate/lib/gzip_decompress.o \
+                 libdeflate/lib/utils.o \
+                 libdeflate/lib/zlib_compress.o \
+                 libdeflate/lib/zlib_decompress.o
 
 
-.PHONY: shlib-clean clean
+PKG_LIBS += $(ZSTD_OBJ) $(LIBDEFLATE_OBJ)
 
-shlib-clean: clean
-
-clean:
-	rm -rf $(OBJECTS) *.so
+$(SHLIB): $(ZSTD_OBJ) $(LIBDEFLATE_OBJ)

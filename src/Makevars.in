@@ -1,0 +1,66 @@
+PKG_CFLAGS=@PKG_CFLAGS@
+PKG_CPPFLAGS=@PKG_CPPFLAGS@
+PKG_LIBS=@PKG_LIBS@
+
+
+PKG_CPPFLAGS+=-Izstd/lib -Izstd/lib/common
+
+ifeq (@HAVE_ZSTD@,1)
+ZSTD_OBJ =
+PKG_LIBS+=-lzstd
+else
+ZSTD_OBJ = zstd/lib/common/debug.o \
+           zstd/lib/common/entropy_common.o \
+           zstd/lib/common/error_private.o \
+           zstd/lib/common/fse_decompress.o \
+           zstd/lib/common/pool.o \
+           zstd/lib/common/threading.o \
+           zstd/lib/common/xxhash.o \
+           zstd/lib/common/zstd_common.o \
+           zstd/lib/compress/fse_compress.o \
+           zstd/lib/compress/hist.o \
+           zstd/lib/compress/huf_compress.o \
+           zstd/lib/compress/zstd_compress.o \
+           zstd/lib/compress/zstd_compress_literals.o \
+           zstd/lib/compress/zstd_compress_sequences.o \
+           zstd/lib/compress/zstd_compress_superblock.o \
+           zstd/lib/compress/zstd_double_fast.o \
+           zstd/lib/compress/zstd_fast.o \
+           zstd/lib/compress/zstd_lazy.o \
+           zstd/lib/compress/zstd_ldm.o \
+           zstd/lib/compress/zstd_opt.o \
+           zstd/lib/compress/zstdmt_compress.o \
+           zstd/lib/decompress/huf_decompress.o \
+           zstd/lib/decompress/zstd_ddict.o \
+           zstd/lib/decompress/zstd_decompress.o \
+           zstd/lib/decompress/zstd_decompress_block.o \
+           zstd/lib/deprecated/zbuff_common.o \
+           zstd/lib/deprecated/zbuff_compress.o \
+           zstd/lib/deprecated/zbuff_decompress.o \
+           zstd/lib/dictBuilder/cover.o \
+           zstd/lib/dictBuilder/divsufsort.o \
+           zstd/lib/dictBuilder/fastcover.o \
+           zstd/lib/dictBuilder/zdict.o
+endif
+
+ifeq (@HAVE_LIBDEFLATE@,1)
+LIBDEFLATE_OBJ =
+PKG_LIBS+=-ldeflate
+else
+LIBDEFLATE_OBJ = libdeflate/lib/arm/cpu_features.o \
+                 libdeflate/lib/x86/cpu_features.o \
+                 libdeflate/lib/adler32.o \
+                 libdeflate/lib/crc32.o \
+                 libdeflate/lib/deflate_compress.o \
+                 libdeflate/lib/deflate_decompress.o \
+                 libdeflate/lib/gzip_compress.o \
+                 libdeflate/lib/gzip_decompress.o \
+                 libdeflate/lib/utils.o \
+                 libdeflate/lib/zlib_compress.o \
+                 libdeflate/lib/zlib_decompress.o
+endif
+
+
+PKG_LIBS += $(ZSTD_OBJ) $(LIBDEFLATE_OBJ)
+
+$(SHLIB): $(ZSTD_OBJ) $(LIBDEFLATE_OBJ)

@@ -8,8 +8,8 @@
 #include <vector>
 #include <zlib.h>
 
-#include "libdeflate-1.6/libdeflate.h"
-#include "zstd-1.4.5/lib/zstd.h"
+#include "libdeflate/libdeflate.h"
+#include "zstd/lib/zstd.h"
 
 typedef unsigned int  uint;
 typedef unsigned char uchar;
